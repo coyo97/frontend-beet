@@ -1,0 +1,165 @@
+import {
+  useEffect,
+} from "react";
+
+import {
+  connectRadarSocket,
+} from "../../../../async/socket/radarSocket";
+
+import {
+  useRadarStore,
+} from "../../../../store/radarStore";
+
+import {
+  useWatchlistAlertStore,
+} from "../../../../store/watchlistAlertStore";
+
+import {
+  hasRemotePushRegistration,
+  showWatchlistNotification,
+} from "../../../../notifications/notificationService";
+
+export function useRadarRealtime():
+  void {
+
+  const addRealtimeSignal =
+    useRadarStore(
+      (
+        state
+      ) =>
+        state
+          .addRealtimeSignal
+    );
+
+	const refreshRedCards =
+  useRadarStore(
+    (
+      state
+    ) =>
+      state
+        .refreshRedCards
+  );
+
+
+	const addWatchlistAlert =
+  useWatchlistAlertStore(
+    (
+      state
+    ) =>
+      state.addAlert
+  );
+
+  const setSocketConnected =
+    useRadarStore(
+      (
+        state
+      ) =>
+        state
+          .setSocketConnected
+    );
+
+  const setError =
+    useRadarStore(
+      (
+        state
+      ) =>
+        state.setError
+    );
+
+  useEffect(
+    () => {
+
+      return connectRadarSocket({
+        onConnect:
+          () => {
+            setSocketConnected(
+              true
+            );
+          },
+
+        onDisconnect:
+          () => {
+            setSocketConnected(
+              false
+            );
+          },
+
+        onError:
+          (
+            message
+          ) => {
+            setSocketConnected(
+              false
+            );
+
+            setError(
+              `Socket: ${message}`
+            );
+          },
+
+onWatchlistAlert:
+  (
+    payload
+  ) => {
+
+    addWatchlistAlert(
+      payload
+    );
+
+    /*
+     * Si todavía no tenemos
+     * push remoto, usamos
+     * Socket.IO + notificación
+     * local como fallback.
+     */
+    if (
+      !hasRemotePushRegistration()
+    ) {
+      void showWatchlistNotification(
+        payload
+      );
+    }
+  },
+onRedCardDetected:
+  (
+    payload
+  ) => {
+
+    console.log(
+      "[RadarRealtime] red card detected",
+      payload.signal.match
+        .home
+        .name,
+      "vs",
+      payload.signal.match
+        .away
+        .name,
+      payload.signal
+        .redCards
+    );
+
+    void refreshRedCards();
+  },
+
+onSignal:
+  (
+    payload
+  ) => {
+
+    addRealtimeSignal(
+      payload
+    );
+  },
+   
+      });
+    },
+
+  [
+  addRealtimeSignal,
+  addWatchlistAlert,
+  refreshRedCards,
+  setError,
+  setSocketConnected,
+]
+  );
+}

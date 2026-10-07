@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "3774590967",
+    "project_id": "football-radar-37835",
+    "storage_bucket": "football-radar-37835.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:3774590967:android:9534f324ac822daa3d08f2",
+        "android_client_info": {
+          "package_name": "com.coyo.footballradar"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDdD2bmSXhSEXLX7RVD6L5dix_-KvwYGvs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
