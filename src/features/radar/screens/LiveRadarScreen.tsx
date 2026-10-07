@@ -17,6 +17,16 @@ import {
 } from "react-native";
 
 import {
+  LiveCompetitionFilter,
+} from "@/features/radar/components/LiveCompetitionFilter";
+
+import {
+  buildLiveCountryOptions,
+  buildLiveLeagueOptions,
+  filterLiveMatchesByCompetition,
+} from "@/features/radar/utils/liveCompetitionFilter";
+
+import {
   router,
 } from "expo-router";
 
@@ -176,6 +186,25 @@ export default function LiveRadarScreen() {
       "all"
     );
 
+const [
+  liveCountryFilter,
+  setLiveCountryFilter,
+] =
+  useState<
+    string | null
+  >(
+    null
+  );
+
+const [
+  liveLeagueFilter,
+  setLiveLeagueFilter,
+] =
+  useState<
+    string | null
+  >(
+    null
+  );
   /*
    * ========================================
    * RADAR STORE
@@ -291,6 +320,143 @@ const orderedLiveMatches =
       localNowMs,
     ]
   );
+
+
+
+  const liveCountryOptions =
+  useMemo(
+    () =>
+      buildLiveCountryOptions(
+        orderedLiveMatches
+      ),
+    [
+      orderedLiveMatches,
+    ]
+  );
+
+  useEffect(
+  () => {
+    if (
+      !liveCountryFilter
+    ) {
+      return;
+    }
+
+    const exists =
+      liveCountryOptions
+        .some(
+          (
+            item
+          ) =>
+            item.value ===
+            liveCountryFilter
+        );
+
+    if (!exists) {
+      setLiveCountryFilter(
+        null
+      );
+
+      setLiveLeagueFilter(
+        null
+      );
+    }
+  },
+  [
+    liveCountryFilter,
+    liveCountryOptions,
+  ]
+);
+const liveLeagueOptions =
+  useMemo(
+    () =>
+      buildLiveLeagueOptions(
+        orderedLiveMatches,
+        liveCountryFilter
+      ),
+    [
+      orderedLiveMatches,
+      liveCountryFilter,
+    ]
+  );
+
+useEffect(
+  () => {
+    if (
+      !liveLeagueFilter
+    ) {
+      return;
+    }
+
+    const exists =
+      liveLeagueOptions
+        .some(
+          (
+            item
+          ) =>
+            item.value ===
+            liveLeagueFilter
+        );
+
+    if (!exists) {
+      setLiveLeagueFilter(
+        null
+      );
+    }
+  },
+  [
+    liveLeagueFilter,
+    liveLeagueOptions,
+  ]
+);
+
+
+
+const visibleLiveMatches =
+  useMemo(
+    () =>
+      filterLiveMatchesByCompetition(
+        orderedLiveMatches,
+        liveCountryFilter,
+        liveLeagueFilter
+      ),
+    [
+      orderedLiveMatches,
+      liveCountryFilter,
+      liveLeagueFilter,
+    ]
+  );
+
+  const selectLiveCountry =
+  (
+    value:
+      string | null
+  ) => {
+    setLiveCountryFilter(
+      value
+    );
+
+    /*
+     * Al cambiar de país,
+     * una liga seleccionada
+     * anteriormente deja de
+     * tener sentido.
+     */
+    setLiveLeagueFilter(
+      null
+    );
+  };
+
+const selectLiveLeague =
+  (
+    value:
+      string | null
+  ) => {
+    setLiveLeagueFilter(
+      value
+    );
+  };
+
   /*
    * ========================================
    * RADAR REVIEW STORE
@@ -1131,9 +1297,9 @@ const orderedLiveMatches =
        * FlatList simplemente evita renderizarlos
        * todos simultáneamente.
        */
-           data={
-        orderedLiveMatches
-      }
+          data={
+  visibleLiveMatches
+}
       keyExtractor={
         liveMatchKey
       }
@@ -1188,8 +1354,39 @@ const orderedLiveMatches =
       }
 
       ListHeaderComponent={
-        listHeader
+  <>
+    {listHeader}
+
+    <LiveCompetitionFilter
+      totalCount={
+        orderedLiveMatches
+          .length
       }
+      visibleCount={
+        visibleLiveMatches
+          .length
+      }
+      countries={
+        liveCountryOptions
+      }
+      leagues={
+        liveLeagueOptions
+      }
+      selectedCountry={
+        liveCountryFilter
+      }
+      selectedLeague={
+        liveLeagueFilter
+      }
+      onCountryChange={
+        selectLiveCountry
+      }
+      onLeagueChange={
+        selectLiveLeague
+      }
+    />
+  </>
+}
 
       ListEmptyComponent={
         !loading
