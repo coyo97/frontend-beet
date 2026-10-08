@@ -78,6 +78,9 @@ onLoss:
       event:
         TeamMemoryEvent
     ) => void;
+
+	showActions?:
+  boolean;
 }
 
 export function TeamMemoryRow({
@@ -92,6 +95,7 @@ export function TeamMemoryRow({
   onWin,
   onLoss,
   onDelete,
+  showActions = true,
 }: Props) {
 
 	const [
@@ -204,42 +208,44 @@ const saveOutcome =
         )}
       </TouchableOpacity>
 
-      <View
-        style={
-          styles.actions
-        }
-      >
-        <AppActionChip
-  label="+ Gané"
-  disabled={
-    loading ||
-    mutating
-  }
-  loading={
-    mutating
-  }
-  onPress={
-    () =>
-      setPendingOutcome(
-        "win"
-      )
-  }
-/>
+      {showActions && (
+  <View
+    style={
+      styles.actions
+    }
+  >
+    <AppActionChip
+      label="+ Gané"
+      disabled={
+        loading ||
+        mutating
+      }
+      loading={
+        mutating
+      }
+      onPress={
+        () =>
+          setPendingOutcome(
+            "win"
+          )
+      }
+    />
 
- <AppActionChip
-  label="+ Perdí"
-  disabled={
-    loading ||
-    mutating
-  }
-  onPress={
-    () =>
-      setPendingOutcome(
-        "loss"
-      )
-  }
-/>
-      </View>
+    <AppActionChip
+      label="+ Perdí"
+      disabled={
+        loading ||
+        mutating
+      }
+      onPress={
+        () =>
+          setPendingOutcome(
+            "loss"
+          )
+      }
+    />
+  </View>
+)}
 
       {expanded && (
         <TeamMemoryHistory

@@ -200,7 +200,7 @@ export async function fetchRecentMatches(
 
         limit:
           options.limit ??
-          400,
+          1000,
       }
     );
 

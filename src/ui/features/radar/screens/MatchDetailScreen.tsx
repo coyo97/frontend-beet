@@ -25,6 +25,18 @@ import FollowScopeButton
   from "../../watchlist/components/FollowScopeButton";
 
   import {
+  MatchTeamMemory,
+} from "@/features/team-memory/components/MatchTeamMemory";
+
+import {
+  MatchCopyActions,
+} from "@/features/match-context/components/MatchCopyActions";
+
+import {
+  ShareMatchQuickActions,
+} from "@/features/shared-match/components/ShareMatchQuickActions";
+
+  import {
   getMatchContextSource,
 } from "@/features/match-context/utils/getMatchContextSource";
 
@@ -975,6 +987,32 @@ export default function MatchDetailScreen() {
       >
         Contexto
       </Text>
+
+		{match && (
+  <>
+    <MatchTeamMemory
+      match={
+        match
+      }
+      autoLoad
+    />
+
+    <MatchCopyActions
+      home={
+        match.home.name
+      }
+      away={
+        match.away.name
+      }
+    />
+
+    <ShareMatchQuickActions
+      match={
+        match
+      }
+    />
+  </>
+)}
 
       {contextSource ? (
         <MatchContextSummary

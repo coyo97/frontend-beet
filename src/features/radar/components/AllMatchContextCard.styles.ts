@@ -130,4 +130,14 @@ export const styles =
       textAlign:
         "center",
     },
+	cardReviewed: {
+  backgroundColor:
+    "#10251A",
+
+  borderColor:
+    "#2E8B57",
+
+  borderWidth:
+    1.5,
+},
   });

@@ -11,64 +11,38 @@ export const styles =
       alignItems:
         "center",
 
-      gap:
-        8,
-
-      marginTop:
-        9,
-
-      backgroundColor:
-        "#0E1116",
-
-      borderWidth:
-        1,
-
-      borderColor:
-        "#252B34",
-
-      borderRadius:
-        11,
-
-      paddingHorizontal:
-        9,
-
-      paddingVertical:
-        8,
-    },
-
-    center: {
-      width:
-        50,
-
-      alignItems:
-        "center",
-
       justifyContent:
         "center",
+
+      gap:
+        6,
+
+      marginTop:
+        5,
+
+      paddingVertical:
+        5,
     },
 
     title: {
       color:
-        "#565F6C",
+        "#697382",
 
       fontSize:
-        6,
+        8,
 
       fontWeight:
-        "900",
+        "800",
 
-      textAlign:
-        "center",
+      letterSpacing:
+        0.5,
     },
 
     chevron: {
       color:
-        "#737D8A",
+        "#7D8794",
 
       fontSize:
-        7,
-
-      marginTop:
-        2,
+        8,
     },
   });

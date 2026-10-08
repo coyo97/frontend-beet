@@ -17,8 +17,20 @@ import {
 } from "react-native";
 
 import {
-  LiveCompetitionFilter,
-} from "@/features/radar/components/LiveCompetitionFilter";
+  RedCardsTab,
+} from "@/features/radar/components/red-cards/RedCardsTab";
+
+import {
+  useSharedMatchStore,
+} from "@/features/shared-match/store/sharedMatchStore";
+
+import {
+  LiveMatchesTab,
+} from "@/features/radar/components/live/LiveMatchesTab";
+
+import {
+  useSharedMatchRealtime,
+} from "@/features/shared-match/hooks/useSharedMatchRealtime";
 
 import {
   buildLiveCountryOptions,
@@ -95,6 +107,10 @@ import {
   styles,
 } from "./LiveRadarScreen.styles";
 
+import {
+  RadarSignalsTab,
+} from "@/features/radar/components/signals/RadarSignalsTab";
+
 /*
  * ========================================
  * HELPERS
@@ -158,9 +174,11 @@ export default function LiveRadarScreen() {
    * ========================================
    */
 
-  useRadarRealtime();
+useRadarRealtime();
 
-  useRadarPolling();
+useSharedMatchRealtime();
+
+useRadarPolling();
 
   /*
    * ========================================
@@ -194,6 +212,12 @@ const [
     string | null
   >(
     null
+  );
+
+  const unreadSharedMatches =
+  useSharedMatchStore(
+    state =>
+      state.unreadCount
   );
 
 const [
@@ -1124,6 +1148,34 @@ const selectLiveLeague =
   </Text>
 </TouchableOpacity>
 
+			<TouchableOpacity
+  activeOpacity={
+    0.8
+  }
+  style={[
+    styles.quickActionButton,
+    styles.watchlistShortcut,
+  ]}
+  onPress={
+    () =>
+      router.push(
+        "/shared"
+      )
+  }
+>
+  <Text
+    style={
+      styles.watchlistShortcutText
+    }
+  >
+    👥 Compartidos
+    {unreadSharedMatches >
+    0
+      ? ` (${unreadSharedMatches})`
+      : ""}
+  </Text>
+</TouchableOpacity>
+
           <TouchableOpacity
             activeOpacity={
               0.8
@@ -1272,209 +1324,32 @@ const selectLiveLeague =
    * LIVE
    * ========================================
    */
-
-  if (
-    tab ===
-    "live"
-  ) {
-   return (
-  <View
-    style={
-      styles.screen
-    }
-  >
-    <FlatList
-      key="live-matches-list"
-
-      /*
-       * IMPORTANTE:
-       *
-       * Aquí siguen estando TODOS los partidos.
-       *
-       * Si tenemos 535:
-       * data contiene los 535.
-       *
-       * FlatList simplemente evita renderizarlos
-       * todos simultáneamente.
-       */
-          data={
-  visibleLiveMatches
-}
-      keyExtractor={
-        liveMatchKey
+if (
+  tab ===
+  "live"
+) {
+  return (
+    <LiveMatchesTab
+      matches={
+        orderedLiveMatches
       }
 
-		      maintainVisibleContentPosition={{
-        minIndexForVisible:
-          0,
-      }}
-
-      /*
-       * visibleLiveKeys cambia mientras hacemos scroll.
-       *
-       * Esto garantiza que una tarjeta se actualice
-       * cuando pasa a ser visible y puede cargar:
-       *
-       * - MatchContext
-       * - memoria
-       * - últimos partidos
-       *
-       * sin hacerlo para los 535 a la vez.
-       */
-      extraData={
-        visibleLiveKeys
+      loading={
+        loading
       }
 
-      renderItem={
-        ({
-          item,
-        }) => {
+      header={
+        listHeader
+      }
 
-          const key =
-            liveMatchKey(
-              item
-            );
-
-          const contextVisible =
-            visibleLiveKeys.has(
-              key
-            );
-
-          return (
-            <AllMatchContextCard
-              match={
-                item
-              }
-              contextVisible={
-                contextVisible
-              }
-            />
-          );
+      onRefresh={
+        () => {
+          void refresh();
         }
       }
-
-      ListHeaderComponent={
-  <>
-    {listHeader}
-
-    <LiveCompetitionFilter
-      totalCount={
-        orderedLiveMatches
-          .length
-      }
-      visibleCount={
-        visibleLiveMatches
-          .length
-      }
-      countries={
-        liveCountryOptions
-      }
-      leagues={
-        liveLeagueOptions
-      }
-      selectedCountry={
-        liveCountryFilter
-      }
-      selectedLeague={
-        liveLeagueFilter
-      }
-      onCountryChange={
-        selectLiveCountry
-      }
-      onLeagueChange={
-        selectLiveLeague
-      }
     />
-  </>
+  );
 }
-
-      ListEmptyComponent={
-        !loading
-          ? (
-            <Text
-              style={
-                styles.empty
-              }
-            >
-              No hay partidos en vivo con este filtro.
-            </Text>
-          )
-          : null
-      }
-
-      refreshControl={
-        refreshControl
-      }
-
-      /*
-       * Nos permite saber qué partidos
-       * están realmente en pantalla.
-       */
-      onViewableItemsChanged={
-        onViewableLiveItemsChanged
-      }
-
-      viewabilityConfig={
-        viewabilityConfig
-      }
-
-      /*
-       * Aunque haya 535 partidos,
-       * inicialmente React Native
-       * construye solamente 8.
-       */
-      initialNumToRender={
-        8
-      }
-
-      /*
-       * Luego agrega máximo 8
-       * por cada tanda.
-       */
-      maxToRenderPerBatch={
-        8
-      }
-
-      /*
-       * Da tiempo al hilo JS
-       * entre lotes.
-       */
-      updateCellsBatchingPeriod={
-        50
-      }
-
-      /*
-       * Mantiene una ventana relativamente
-       * pequeña alrededor de lo visible.
-       */
-      windowSize={
-        7
-      }
-
-      /*
-       * Lo dejamos FALSE inicialmente.
-       *
-       * Con tarjetas cuya altura cambia
-       * al cargar contexto, Android puede
-       * dar problemas visuales si se recortan
-       * agresivamente los elementos.
-       *
-       * Cuando todo quede estable podemos
-       * probar true y medir rendimiento.
-       */
-      removeClippedSubviews={
-        false
-      }
-
-      keyboardShouldPersistTaps="handled"
-
-      contentContainerStyle={
-        styles.listContent
-      }
-    />
-  </View>
-);
-  }
 
   /*
    * ========================================
@@ -1483,201 +1358,63 @@ const selectLiveLeague =
    */
 
   if (
-    tab ===
-    "red-cards"
-  ) {
-    return (
-      <View
-        style={
-          styles.screen
-        }
-      >
-        <FlatList
-  key="red-card-matches-list"
-
-  data={
-    visibleRedCardMatches
-  }
-          keyExtractor={
-            (
-              item,
-              index
-            ) => {
-
-              const source =
-                getPreferredMatchSource(
-                  item.match
-                );
-
-              return source
-                ? `${source.provider}:${source.externalId}`
-                : [
-                    item.match.home.name,
-                    item.match.away.name,
-                    index,
-                  ].join(
-                    ":"
-                  );
-            }
-          }
-          renderItem={
-            ({
-              item,
-            }) => (
-              <RedCardMatchCard
-                item={
-                  item
-                }
-                onPress={
-                  () =>
-                    openMatch(
-                      item.match
-                    )
-                }
-              />
-            )
-          }
-          ListHeaderComponent={
-            listHeader
-          }
-          ListEmptyComponent={
-            !loading
-              ? (
-                <Text
-                  style={
-                    styles.empty
-                  }
-                >
-                  {redCardMatches.length ===
-                  0
-                    ? "No se detectan expulsiones actualmente."
-                    : "No hay rojas con este estado."}
-                </Text>
-              )
-              : null
-          }
-          refreshControl={
-            refreshControl
-          }
-          initialNumToRender={
-            6
-          }
-          maxToRenderPerBatch={
-            6
-          }
-          windowSize={
-            6
-          }
-          removeClippedSubviews={
-            true
-          }
-          keyboardShouldPersistTaps="handled"
-          contentContainerStyle={
-            styles.listContent
-          }
-        />
-      </View>
-    );
-  }
-
-  /*
-   * ========================================
-   * SIGNALS
-   * ========================================
-   */
-
+  tab ===
+  "red-cards"
+) {
   return (
-    <View
-      style={
-        styles.screen
+    <RedCardsTab
+      matches={
+        visibleRedCardMatches
       }
-    >
-      <FlatList
-        data={
-          visibleSignals
-        }
-        keyExtractor={
-          (
-            item,
-            index
-          ) => {
 
-            const source =
-              getPreferredMatchSource(
-                item.signal
-                  .match
-              );
+      totalMatches={
+        redCardMatches.length
+      }
 
-            if (source) {
-              return [
-                source.provider,
-                source.externalId,
-                item.publishedAt,
-              ].join(
-                ":"
-              );
-            }
+      loading={
+        loading
+      }
 
-            return (
-              `${item.publishedAt}:` +
-              index
-            );
-          }
+      header={
+        listHeader
+      }
+
+      onRefresh={
+        () => {
+          void refresh();
         }
-        renderItem={
-          ({
-            item,
-          }) => (
-            <RadarSignalCard
-              item={
-                item
-              }
-              onPress={
-                () =>
-                  openMatch(
-                    item.signal
-                      .match
-                  )
-              }
-            />
-          )
-        }
-        ListHeaderComponent={
-          listHeader
-        }
-        ListEmptyComponent={
-          !loading
-            ? (
-              <Text
-                style={
-                  styles.empty
-                }
-              >
-                Aún no hay señales de presión con expulsión.
-              </Text>
-            )
-            : null
-        }
-        refreshControl={
-          refreshControl
-        }
-        initialNumToRender={
-          6
-        }
-        maxToRenderPerBatch={
-          6
-        }
-        windowSize={
-          6
-        }
-        removeClippedSubviews={
-          true
-        }
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={
-          styles.listContent
-        }
-      />
-    </View>
+      }
+
+      onOpenMatch={
+        openMatch
+      }
+    />
   );
+}
+
+return (
+  <RadarSignalsTab
+    signals={
+      visibleSignals
+    }
+
+    loading={
+      loading
+    }
+
+    header={
+      listHeader
+    }
+
+    onRefresh={
+      () => {
+        void refresh();
+      }
+    }
+
+    onOpenMatch={
+      openMatch
+    }
+  />
+);
 }

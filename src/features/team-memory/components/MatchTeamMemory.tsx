@@ -15,6 +15,7 @@ import type {
   LiveMatch,
 } from "@/types/radar";
 
+
 import {
   getPreferredMatchSource,
 } from "@/ui/features/radar/utils/matchSource";
@@ -72,69 +73,65 @@ export function MatchTeamMemory({
       null
     );
 
+  /*
+   * ========================================
+   * STORE
+   * ========================================
+   */
+
   const ensureHistory =
     useTeamMemoryStore(
-      (
-        state
-      ) =>
+      state =>
         state.ensureHistory
     );
 
   const record =
     useTeamMemoryStore(
-      (
-        state
-      ) =>
+      state =>
         state.record
     );
 
   const removeEvent =
     useTeamMemoryStore(
-      (
-        state
-      ) =>
+      state =>
         state.removeEvent
     );
 
   const summaries =
     useTeamMemoryStore(
-      (
-        state
-      ) =>
+      state =>
         state.summaries
     );
 
   const history =
     useTeamMemoryStore(
-      (
-        state
-      ) =>
+      state =>
         state.history
     );
 
   const loadingKeys =
     useTeamMemoryStore(
-      (
-        state
-      ) =>
+      state =>
         state.loadingKeys
     );
 
   const historyLoadingKeys =
     useTeamMemoryStore(
-      (
-        state
-      ) =>
+      state =>
         state.historyLoadingKeys
     );
 
   const mutatingKeys =
     useTeamMemoryStore(
-      (
-        state
-      ) =>
+      state =>
         state.mutatingKeys
     );
+
+  /*
+   * ========================================
+   * TEAM KEYS
+   * ========================================
+   */
 
   const homeKey =
     teamMemoryKey(
@@ -150,6 +147,12 @@ export function MatchTeamMemory({
     getPreferredMatchSource(
       match
     );
+
+  /*
+   * ========================================
+   * HISTORIAL
+   * ========================================
+   */
 
   const toggleHistory =
     (
@@ -182,49 +185,70 @@ export function MatchTeamMemory({
       );
     };
 
-const recordForTeam =
-  (
-    teamName:
-      string,
+  /*
+   * ========================================
+   * REGISTRO
+   * ========================================
+   *
+   * Se conserva esta función porque
+   * TeamMemoryRow todavía recibe
+   * onWin / onLoss.
+   *
+   * En esta pantalla las acciones
+   * están ocultas mediante:
+   *
+   * showActions={false}
+   *
+   * El voto visible lo maneja:
+   *
+   * MatchQuickOutcomeVote
+   * ========================================
+   */
 
-    opponentName:
-      string,
+  const recordForTeam =
+    (
+      teamName:
+        string,
 
-    outcome:
-      "win" |
-      "loss",
+      opponentName:
+        string,
 
-    note:
-      string |
-      null
-  ) => {
-
-    void record({
-      teamName,
-      outcome,
-
-      opponentName,
-
-      competitionName:
-        match.competition
-          .name,
-
-      kickoffAt:
-        match.kickoffAt,
-
-      provider:
-        source?.provider ??
-        null,
-
-      externalId:
-        source?.externalId ??
-        null,
+      outcome:
+        "win" |
+        "loss",
 
       note:
-        note?.trim() ||
-        null,
-    });
-  };
+        string |
+        null
+    ) => {
+
+      void record({
+        teamName,
+
+        outcome,
+
+        opponentName,
+
+        competitionName:
+          match.competition
+            .name,
+
+        kickoffAt:
+          match.kickoffAt,
+
+        provider:
+          source?.provider ??
+          null,
+
+        externalId:
+          source?.externalId ??
+          null,
+
+        note:
+          note?.trim() ||
+          null,
+      });
+    };
 
   return (
     <View
@@ -232,6 +256,25 @@ const recordForTeam =
         styles.container
       }
     >
+
+      {/*
+       * ========================================
+       * HISTORIAL COMPACTO
+       * ========================================
+       *
+       * Ahora debe funcionar únicamente
+       * como control para desplegar.
+       *
+       * Ideal:
+       *
+       *         TU HISTORIAL ▼
+       *
+       * Los nombres de los equipos
+       * ya están en el encabezado
+       * principal del partido.
+       * ========================================
+       */}
+
       <MatchTeamMemoryStrip
         match={
           match
@@ -245,13 +288,42 @@ const recordForTeam =
         onToggle={
           () =>
             setExpanded(
-              (
-                current
-              ) =>
+              current =>
                 !current
             )
         }
       />
+
+      {/*
+       * ========================================
+       * VOTO RÁPIDO
+       * ========================================
+       *
+       * Esta es ahora la ÚNICA zona
+       * visible para votar.
+       *
+       * No duplicamos Ganó / Perdió
+       * dentro de TeamMemoryRow.
+       * ========================================
+       */}
+
+      
+      {/*
+       * ========================================
+       * DETALLE EXPANDIBLE
+       * ========================================
+       *
+       * Aquí dejamos:
+       *
+       * - resumen
+       * - historial
+       * - notas
+       * - eliminar registros
+       * - perfil personal del equipo
+       *
+       * Pero NO botones Ganó / Perdió.
+       * ========================================
+       */}
 
       {expanded && (
         <View
@@ -259,13 +331,20 @@ const recordForTeam =
             styles.details
           }
         >
+
           <Text
             style={
               styles.help
             }
           >
-            Registra cómo terminó tu experiencia con cada equipo. Esto no significa que el partido esté marcado o revisado.
+            Consulta tu historial y tus notas para cada equipo.
           </Text>
+
+          {/*
+           * ========================================
+           * LOCAL
+           * ========================================
+           */}
 
           <TeamMemoryRow
             teamName={
@@ -313,42 +392,58 @@ const recordForTeam =
                   match.home.name
                 )
             }
-           onWin={
-  note =>
-    recordForTeam(
-      match.home.name,
-      match.away.name,
-      "win",
-      note
-    )
-}
-onLoss={
-  note =>
-    recordForTeam(
-      match.home.name,
-      match.away.name,
-      "loss",
-      note
-    )
-}
+            onWin={
+              note =>
+                recordForTeam(
+                  match.home.name,
+                  match.away.name,
+                  "win",
+                  note
+                )
+            }
+            onLoss={
+              note =>
+                recordForTeam(
+                  match.home.name,
+                  match.away.name,
+                  "loss",
+                  note
+                )
+            }
             onDelete={
-              (
-                event
-              ) => {
+              event => {
                 void removeEvent(
                   event
                 );
               }
             }
+
+            /*
+             * MUY IMPORTANTE:
+             *
+             * Ganó / Perdió ya están
+             * en MatchQuickOutcomeVote.
+             */
+            showActions={
+              false
+            }
           />
-{expandedTeam ===
-  homeKey && (
-  <TeamPersonalProfileEditor
-    teamName={
-      match.home.name
-    }
-  />
-)}
+
+          {expandedTeam ===
+            homeKey && (
+            <TeamPersonalProfileEditor
+              teamName={
+                match.home.name
+              }
+            />
+          )}
+
+          {/*
+           * ========================================
+           * VISITANTE
+           * ========================================
+           */}
+
           <TeamMemoryRow
             teamName={
               match.away.name
@@ -396,41 +491,49 @@ onLoss={
                 )
             }
             onWin={
-  note =>
-    recordForTeam(
-      match.away.name,
-      match.home.name,
-      "win",
-      note
-    )
-}
-onLoss={
-  note =>
-    recordForTeam(
-      match.away.name,
-      match.home.name,
-      "loss",
-      note
-    )
-}
+              note =>
+                recordForTeam(
+                  match.away.name,
+                  match.home.name,
+                  "win",
+                  note
+                )
+            }
+            onLoss={
+              note =>
+                recordForTeam(
+                  match.away.name,
+                  match.home.name,
+                  "loss",
+                  note
+                )
+            }
             onDelete={
-              (
-                event
-              ) => {
+              event => {
                 void removeEvent(
                   event
                 );
               }
             }
+
+            /*
+             * Igual que local:
+             * acciones ocultas aquí.
+             */
+            showActions={
+              false
+            }
           />
-			{expandedTeam ===
-  awayKey && (
-  <TeamPersonalProfileEditor
-    teamName={
-      match.away.name
-    }
-  />
-)}
+
+          {expandedTeam ===
+            awayKey && (
+            <TeamPersonalProfileEditor
+              teamName={
+                match.away.name
+              }
+            />
+          )}
+
         </View>
       )}
     </View>

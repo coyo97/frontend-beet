@@ -9,7 +9,7 @@ import {
 
 import type {
   LiveFilterOption,
-} from "../utils/liveCompetitionFilter";
+} from "../../utils/liveCompetitionFilter";
 
 import {
   styles,
@@ -215,17 +215,17 @@ export function LiveCompetitionFilter({
               ]}
             >
               <Text
-                style={[
-                  styles.chipText,
+  style={[
+    styles.chipText,
 
-                  selectedLeague ===
-                    null &&
-                    styles
-                      .chipTextActive,
-                ]}
-              >
-                Todas
-              </Text>
+    selectedLeague ===
+      null &&
+      styles
+        .chipTextActiveSecondary,
+  ]}
+>
+  Todas
+</Text>
             </TouchableOpacity>
 
             {leagues.map(
@@ -255,15 +255,15 @@ export function LiveCompetitionFilter({
                           .chipActiveSecondary,
                     ]}
                   >
-                    <Text
-                      style={[
-                        styles.chipText,
+                   <Text
+  style={[
+    styles.chipText,
 
-                        active &&
-                          styles
-                            .chipTextActive,
-                      ]}
-                    >
+    active &&
+      styles
+        .chipTextActiveSecondary,
+  ]}
+>
                       {item.label}
                       {" "}
                       {item.count}
@@ -279,14 +279,13 @@ export function LiveCompetitionFilter({
       {(selectedCountry ||
         selectedLeague) && (
         <Text
-          style={
-            styles.filterInfo
-          }
-        >
-          Mostrando{" "}
-          {visibleCount} de{" "}
-          {totalCount} partidos
-        </Text>
+  style={
+    styles.filterInfo
+  }
+>
+  {visibleCount} de{" "}
+  {totalCount} partidos
+</Text>
       )}
     </View>
   );

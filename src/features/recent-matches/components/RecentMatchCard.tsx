@@ -14,6 +14,10 @@ import {
   MatchCopyActions,
 } from "@/features/match-context/components/MatchCopyActions";
 
+import {
+  MatchQuickOutcomeVote,
+} from "@/features/team-memory/components/MatchQuickOutcomeVote";
+
 import type {
   RecentMatch,
 } from "../types/recentMatch";
@@ -268,7 +272,12 @@ export function RecentMatchCard({
     false
   }
 />
-      <MatchCopyActions
+		<MatchQuickOutcomeVote
+  match={
+    item.match
+  }
+/>
+	      <MatchCopyActions
         home={
           match.home.name
         }

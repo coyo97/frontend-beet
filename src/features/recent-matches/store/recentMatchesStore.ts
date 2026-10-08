@@ -61,7 +61,7 @@ export const useRecentMatchesStore =
                   48,
 
                 limit:
-                  400,
+                  1000,
               });
 
             set({

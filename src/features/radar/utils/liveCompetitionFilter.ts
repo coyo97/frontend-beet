@@ -13,6 +13,12 @@ export interface LiveFilterOption {
     number;
 }
 
+/*
+ * ========================================
+ * NORMALIZATION
+ * ========================================
+ */
+
 function normalize(
   value:
     string
@@ -27,6 +33,68 @@ function normalize(
     .toLowerCase();
 }
 
+/*
+ * ========================================
+ * COUNTRY ALIASES
+ * ========================================
+ *
+ * Distintos proveedores pueden devolver
+ * el mismo país con nombres diferentes.
+ *
+ * Ejemplo:
+ *
+ * SofaScore:
+ * Türkiye
+ *
+ * Otro proveedor:
+ * Turkey
+ *
+ * Para el filtro deben representar
+ * exactamente el mismo país.
+ */
+
+const COUNTRY_ALIASES:
+  Record<
+    string,
+    string
+  > = {
+    turkey:
+      "Türkiye",
+
+    turkiye:
+      "Türkiye",
+  };
+
+/*
+ * Devuelve el nombre visual que vamos
+ * a utilizar para agrupar el país.
+ */
+function canonicalCountryName(
+  value:
+    string
+): string {
+  const trimmed =
+    value.trim();
+
+  const key =
+    normalize(
+      trimmed
+    );
+
+  return (
+    COUNTRY_ALIASES[
+      key
+    ] ??
+    trimmed
+  );
+}
+
+/*
+ * ========================================
+ * MATCH COUNTRY
+ * ========================================
+ */
+
 export function getLiveMatchCountry(
   match:
     LiveMatch
@@ -36,9 +104,20 @@ export function getLiveMatchCountry(
       .country
       ?.trim();
 
-  return country ||
-    "Sin país";
+  if (!country) {
+    return "Sin país";
+  }
+
+  return canonicalCountryName(
+    country
+  );
 }
+
+/*
+ * ========================================
+ * MATCH LEAGUE
+ * ========================================
+ */
 
 export function getLiveMatchLeague(
   match:
@@ -49,9 +128,18 @@ export function getLiveMatchLeague(
       .name
       ?.trim();
 
-  return league ||
-    "Sin liga";
+  if (!league) {
+    return "Sin liga";
+  }
+
+  return league;
 }
+
+/*
+ * ========================================
+ * COUNTRY OPTIONS
+ * ========================================
+ */
 
 export function buildLiveCountryOptions(
   matches:
@@ -72,6 +160,19 @@ export function buildLiveCountryOptions(
         match
       );
 
+    /*
+     * El value es la clave normalizada.
+     *
+     * Ejemplo:
+     *
+     * Türkiye
+     *    ↓
+     * turkiye
+     *
+     * Turkey también fue convertido
+     * antes a Türkiye, así que termina
+     * en la misma clave.
+     */
     const value =
       normalize(
         label
@@ -83,7 +184,8 @@ export function buildLiveCountryOptions(
       );
 
     if (current) {
-      current.count += 1;
+      current.count +=
+        1;
 
       continue;
     }
@@ -93,11 +195,22 @@ export function buildLiveCountryOptions(
       {
         value,
         label,
-        count: 1,
+        count:
+          1,
       }
     );
   }
 
+  /*
+   * Ordenamos primero por cantidad
+   * de partidos.
+   *
+   * Así los países con más partidos
+   * aparecen primero.
+   *
+   * Si tienen la misma cantidad,
+   * ordenamos alfabéticamente.
+   */
   return Array
     .from(
       groups.values()
@@ -107,14 +220,21 @@ export function buildLiveCountryOptions(
         a,
         b
       ) =>
-        b.count -
-          a.count ||
-        a.label
-          .localeCompare(
-            b.label
-          )
+        (
+          b.count -
+          a.count
+        ) ||
+        a.label.localeCompare(
+          b.label
+        )
     );
 }
+
+/*
+ * ========================================
+ * LEAGUE OPTIONS
+ * ========================================
+ */
 
 export function buildLiveLeagueOptions(
   matches:
@@ -123,6 +243,10 @@ export function buildLiveLeagueOptions(
   selectedCountry:
     string | null
 ): LiveFilterOption[] {
+  /*
+   * Las ligas solamente tienen sentido
+   * después de seleccionar un país.
+   */
   if (
     !selectedCountry
   ) {
@@ -146,6 +270,9 @@ export function buildLiveLeagueOptions(
         )
       );
 
+    /*
+     * Ignoramos partidos de otros países.
+     */
     if (
       country !==
       selectedCountry
@@ -169,7 +296,8 @@ export function buildLiveLeagueOptions(
       );
 
     if (current) {
-      current.count += 1;
+      current.count +=
+        1;
 
       continue;
     }
@@ -179,7 +307,8 @@ export function buildLiveLeagueOptions(
       {
         value,
         label,
-        count: 1,
+        count:
+          1,
       }
     );
   }
@@ -193,14 +322,21 @@ export function buildLiveLeagueOptions(
         a,
         b
       ) =>
-        b.count -
-          a.count ||
-        a.label
-          .localeCompare(
-            b.label
-          )
+        (
+          b.count -
+          a.count
+        ) ||
+        a.label.localeCompare(
+          b.label
+        )
     );
 }
+
+/*
+ * ========================================
+ * FILTER MATCHES
+ * ========================================
+ */
 
 export function filterLiveMatchesByCompetition(
   matches:
@@ -213,21 +349,30 @@ export function filterLiveMatchesByCompetition(
     string | null
 ): LiveMatch[] {
   /*
-   * Muy importante:
+   * IMPORTANTE:
    *
-   * filter() conserva el orden.
+   * filter() conserva el orden original.
    *
-   * Por tanto seguimos respetando
-   * orderedLiveMatches:
+   * Esto significa que seguimos
+   * respetando orderedLiveMatches.
    *
-   * recién iniciados arriba,
-   * partidos avanzados abajo.
+   * Por ejemplo:
+   *
+   * - partidos recién iniciados arriba
+   * - partidos más avanzados abajo
+   *
+   * No hacemos un sort adicional aquí.
    */
-
   return matches.filter(
     (
       match
     ) => {
+      /*
+       * ========================================
+       * COUNTRY
+       * ========================================
+       */
+
       if (
         selectedCountry
       ) {
@@ -245,6 +390,12 @@ export function filterLiveMatchesByCompetition(
           return false;
         }
       }
+
+      /*
+       * ========================================
+       * LEAGUE
+       * ========================================
+       */
 
       if (
         selectedLeague

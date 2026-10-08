@@ -10,13 +10,26 @@ import {
   router,
 } from "expo-router";
 
+import {
+  radarReviewKey,
+  useRadarReviewStore,
+} from "@/features/radar-review/store/radarReviewStore";
+
 import type {
   LiveMatch,
 } from "@/types/radar";
 
 import {
-  LiveTeamMemoryInsight,
-} from "@/features/team-memory/components/LiveTeamMemoryInsight";
+  ShareMatchQuickActions,
+} from "@/features/shared-match/components/ShareMatchQuickActions";
+
+import {
+  MatchTeamMemoryQuickActions,
+} from "@/features/team-memory/components/MatchTeamMemoryQuickActions";
+
+import {
+  MatchTeamMemory,
+} from "@/features/team-memory/components/MatchTeamMemory";
 
 import {
   getMatchContextSource,
@@ -33,10 +46,6 @@ import {
 import {
   MatchCopyActions,
 } from "@/features/match-context/components/MatchCopyActions";
-
-import {
-  MatchTeamMemory,
-} from "@/features/team-memory/components/MatchTeamMemory";
 
 import {
   RadarReviewControls,
@@ -66,12 +75,6 @@ export function AllMatchContextCard({
   /*
    * Fuente general del partido.
    *
-   * Puede ser:
-   * - flashscore
-   * - fotmob
-   * - api-football
-   * - bookmaker / 1xBet
-   *
    * Se utiliza para:
    * - abrir detalle
    * - review
@@ -82,17 +85,39 @@ export function AllMatchContextCard({
       match
     );
 
+	const reviewKey =
+  source
+    ? radarReviewKey(
+        source.provider,
+        source.externalId
+      )
+    : null;
+
+const reviewStatus =
+  useRadarReviewStore(
+    (
+      state
+    ) =>
+      reviewKey
+        ? state.items[
+            reviewKey
+          ]?.status ??
+          "new"
+        : "new"
+  );
+
+const isReviewed =
+  reviewStatus ===
+  "reviewed";
+
   /*
-   * Fuente específicamente apta
-   * para MatchContext.
+   * Fuente compatible con
+   * MatchContext.
    *
-   * Actualmente:
-   * - Flashscore
-   * - FotMob
-   *
-   * Un partido exclusivamente 1xBet
-   * seguirá siendo visible, pero mostrará
-   * "Contexto limitado".
+   * Si no existe una fuente
+   * compatible, el partido sigue
+   * visible y mostramos contexto
+   * limitado.
    */
   const contextSource =
     getMatchContextSource(
@@ -135,12 +160,15 @@ export function AllMatchContextCard({
     "-";
 
   return (
-    <View
-      style={
-        styles.card
-      }
-    >
-      {/*
+	  <View
+  style={[
+    styles.card,
+
+    isReviewed &&
+      styles.cardReviewed,
+  ]}
+>
+          {/*
        * =========================
        * MATCH HEADER
        * =========================
@@ -224,27 +252,64 @@ export function AllMatchContextCard({
         </View>
       </TouchableOpacity>
 
-		<LiveTeamMemoryInsight
-  match={
-    match
-  }
-  autoLoad={
-    contextVisible
-  }
-/>
+      {/*
+       * =========================
+       * QUICK MEMORY ACTIONS
+       * =========================
+       *
+       * Aquí están ahora:
+       *
+       * - resumen Ganó / Perdió
+       * - botón Ganó
+       * - botón Perdió
+       *
+       * Sin volver a repetir
+       * los nombres de los equipos.
+       */}
+      <MatchTeamMemoryQuickActions
+        match={
+          match
+        }
+        autoLoad={
+          contextVisible
+        }
+      />
+
+      {/*
+       * =========================
+       * PERSONAL HISTORY
+       * =========================
+       *
+       * Solo:
+       *
+       * TU HISTORIAL ▼
+       *
+       * Al abrirlo se muestran
+       * detalles históricos/perfil,
+       * pero no repetimos las
+       * acciones Ganó / Perdió.
+       */}
+      <MatchTeamMemory
+        match={
+          match
+        }
+        autoLoad={
+          contextVisible
+        }
+      />
 
       {/*
        * =========================
        * MATCH CONTEXT
        * =========================
        *
-       * Flashscore/FotMob:
-       * cargamos tabla, posición,
-       * forma, etc.
+       * SofaScore / Flashscore /
+       * FotMob, según la fuente
+       * compatible disponible.
        *
-       * 1xBet-only:
-       * NO ocultamos el partido.
-       * Mostramos contexto limitado.
+       * Si no existe contexto
+       * completo, mostramos
+       * contexto limitado.
        */}
       {contextSource ? (
         <MatchContextSummary
@@ -265,15 +330,6 @@ export function AllMatchContextCard({
 
       {/*
        * =========================
-       * PERSONAL TEAM MEMORY
-       * =========================
-       *
-       * Funciona independientemente
-       * de si existe MatchContext.
-       */}
-      
-      {/*
-       * =========================
        * COPY ACTIONS
        * =========================
        */}
@@ -288,13 +344,19 @@ export function AllMatchContextCard({
 
       {/*
        * =========================
+       * SHARE
+       * =========================
+       */}
+      <ShareMatchQuickActions
+        match={
+          match
+        }
+      />
+
+      {/*
+       * =========================
        * REVIEW STATE
        * =========================
-       *
-       * También funciona con 1xBet:
-       *
-       * provider = bookmaker
-       * externalId = ID de 1xBet
        */}
       {source && (
         <RadarReviewControls
