@@ -21,6 +21,10 @@ import {
 } from "@/features/radar/components/red-cards/RedCardsTab";
 
 import {
+  useAutoResolveMatchPicks,
+} from "@/features/match-picks/hooks/useAutoResolveMatchPicks";
+
+import {
   useSharedMatchStore,
 } from "@/features/shared-match/store/sharedMatchStore";
 
@@ -252,14 +256,9 @@ const [
   } =
     useRadarStore();
 
-    /*
-   * ========================================
-   * LOCAL LIVE CLOCK
-   *
-   * Solo actualiza la UI.
-   * NO hace peticiones HTTP.
-   * ========================================
-   */
+    useAutoResolveMatchPicks(
+  liveMatches
+);
 
   const [
     localNowMs,
@@ -269,16 +268,7 @@ const [
       Date.now()
     );
 
-
-
-  /*
-   * Un tick cada 15 segundos.
-   *
-   * El minuto visible solo cambiará
-   * aproximadamente una vez por minuto,
-   * pero así no dependemos de caer justo
-   * sobre el cambio de minuto.
-   */
+ 
   useEffect(
     () => {
 

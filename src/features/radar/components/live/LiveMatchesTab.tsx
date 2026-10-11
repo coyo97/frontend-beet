@@ -18,6 +18,16 @@ import type {
 } from "@/types/radar";
 
 import {
+  teamMemoryKey,
+  useTeamMemoryStore,
+} from "@/features/team-memory/store/teamMemoryStore";
+
+import {
+  LiveMemoryFilter,
+  type LiveMemoryFilterMode,
+} from "./LiveMemoryFilter";
+
+import {
   styles,
 } from "./LiveMatchesTab.styles";
 
@@ -57,6 +67,7 @@ function liveMatchKey(
   match:
     LiveMatch
 ): string {
+
   const source =
     getPreferredMatchSource(
       match
@@ -82,21 +93,14 @@ export function LiveMatchesTab({
   header = null,
   onRefresh,
 }: Props) {
-  /*
-   * ========================================
-   * LOCAL FILTER STATE
-   * ========================================
-   *
-   * Este estado pertenece solamente
-   * a la pestaña LIVE.
-   */
 
   const [
     selectedCountry,
     setSelectedCountry,
   ] =
     useState<
-      string | null
+      string |
+      null
     >(
       null
     );
@@ -106,16 +110,21 @@ export function LiveMatchesTab({
     setSelectedLeague,
   ] =
     useState<
-      string | null
+      string |
+      null
     >(
       null
     );
 
-  /*
-   * ========================================
-   * VISIBLE MATCHES
-   * ========================================
-   */
+  const [
+    memoryFilterMode,
+    setMemoryFilterMode,
+  ] =
+    useState<
+      LiveMemoryFilterMode
+    >(
+      "all"
+    );
 
   const [
     visibleKeys,
@@ -127,20 +136,173 @@ export function LiveMatchesTab({
       new Set()
     );
 
-  /*
-   * ========================================
-   * FILTER OPTIONS
-   * ========================================
-   */
+  const memorySummaries =
+    useTeamMemoryStore(
+      state =>
+        state.summaries
+    );
+
+  const loadAllSummaries =
+    useTeamMemoryStore(
+      state =>
+        state.loadAllSummaries
+    );
+
+  const allSummariesLoading =
+    useTeamMemoryStore(
+      state =>
+        state.allSummariesLoading
+    );
+
+  const opponentSummaries =
+    useTeamMemoryStore(
+      state =>
+        state.opponentSummaries
+    );
+
+  const loadAllOpponentSummaries =
+    useTeamMemoryStore(
+      state =>
+        state.loadAllOpponentSummaries
+    );
+
+  const allOpponentSummariesLoading =
+    useTeamMemoryStore(
+      state =>
+        state.allOpponentSummariesLoading
+    );
+
+  const directMemoryMatches =
+    useMemo(
+      () =>
+        matches.filter(
+          match => {
+
+            const homeSummary =
+              memorySummaries[
+                teamMemoryKey(
+                  match.home.name
+                )
+              ];
+
+            const awaySummary =
+              memorySummaries[
+                teamMemoryKey(
+                  match.away.name
+                )
+              ];
+
+            const homeHasMemory =
+              Boolean(
+                homeSummary &&
+                homeSummary.total >
+                  0
+              );
+
+            const awayHasMemory =
+              Boolean(
+                awaySummary &&
+                awaySummary.total >
+                  0
+              );
+
+            return (
+              homeHasMemory ||
+              awayHasMemory
+            );
+          }
+        ),
+      [
+        matches,
+        memorySummaries,
+      ]
+    );
+
+  const opponentMemoryMatches =
+    useMemo(
+      () =>
+        matches.filter(
+          match => {
+
+            const homeOpponent =
+              opponentSummaries[
+                teamMemoryKey(
+                  match.home.name
+                )
+              ];
+
+            const awayOpponent =
+              opponentSummaries[
+                teamMemoryKey(
+                  match.away.name
+                )
+              ];
+
+            const homeIsOpponent =
+              Boolean(
+                homeOpponent &&
+                homeOpponent
+                  .appearances >
+                  0
+              );
+
+            const awayIsOpponent =
+              Boolean(
+                awayOpponent &&
+                awayOpponent
+                  .appearances >
+                  0
+              );
+
+            return (
+              homeIsOpponent ||
+              awayIsOpponent
+            );
+          }
+        ),
+      [
+        matches,
+        opponentSummaries,
+      ]
+    );
+
+  const filterBaseMatches =
+    useMemo(
+      () => {
+
+        if (
+          memoryFilterMode ===
+          "direct"
+        ) {
+          return directMemoryMatches;
+        }
+
+        if (
+          memoryFilterMode ===
+          "opponents"
+        ) {
+          return opponentMemoryMatches;
+        }
+
+        return matches;
+
+      },
+      [
+        memoryFilterMode,
+        directMemoryMatches,
+        opponentMemoryMatches,
+        matches,
+      ]
+    );
 
   const countries =
     useMemo(
       () =>
         buildLiveCountryOptions(
-          matches
+          filterBaseMatches
         ),
       [
-        matches,
+        filterBaseMatches,
       ]
     );
 
@@ -148,11 +310,11 @@ export function LiveMatchesTab({
     useMemo(
       () =>
         buildLiveLeagueOptions(
-          matches,
+          filterBaseMatches,
           selectedCountry
         ),
       [
-        matches,
+        filterBaseMatches,
         selectedCountry,
       ]
     );
@@ -161,25 +323,35 @@ export function LiveMatchesTab({
     useMemo(
       () =>
         filterLiveMatchesByCompetition(
-          matches,
+          filterBaseMatches,
           selectedCountry,
           selectedLeague
         ),
       [
-        matches,
+        filterBaseMatches,
         selectedCountry,
         selectedLeague,
       ]
     );
 
-  /*
-   * ========================================
-   * INVALID FILTER CLEANUP
-   * ========================================
-   */
+  useEffect(
+    () => {
+
+      void Promise.all([
+        loadAllSummaries(),
+        loadAllOpponentSummaries(),
+      ]);
+
+    },
+    [
+      loadAllSummaries,
+      loadAllOpponentSummaries,
+    ]
+  );
 
   useEffect(
     () => {
+
       if (
         !selectedCountry
       ) {
@@ -202,6 +374,7 @@ export function LiveMatchesTab({
           null
         );
       }
+
     },
     [
       countries,
@@ -211,6 +384,7 @@ export function LiveMatchesTab({
 
   useEffect(
     () => {
+
       if (
         !selectedLeague
       ) {
@@ -229,6 +403,7 @@ export function LiveMatchesTab({
           null
         );
       }
+
     },
     [
       leagues,
@@ -236,17 +411,13 @@ export function LiveMatchesTab({
     ]
   );
 
-  /*
-   * ========================================
-   * FILTER ACTIONS
-   * ========================================
-   */
-
   const selectCountry =
     (
       value:
-        string | null
+        string |
+        null
     ) => {
+
       setSelectedCountry(
         value
       );
@@ -259,18 +430,33 @@ export function LiveMatchesTab({
   const selectLeague =
     (
       value:
-        string | null
+        string |
+        null
     ) => {
+
       setSelectedLeague(
         value
       );
     };
 
-  /*
-   * ========================================
-   * VIEWABILITY
-   * ========================================
-   */
+  const selectMemoryFilter =
+    (
+      value:
+        LiveMemoryFilterMode
+    ) => {
+
+      setMemoryFilterMode(
+        value
+      );
+
+      setSelectedCountry(
+        null
+      );
+
+      setSelectedLeague(
+        null
+      );
+    };
 
   const viewabilityConfig =
     useRef({
@@ -290,6 +476,7 @@ export function LiveMatchesTab({
         viewableItems:
           ViewToken<LiveMatch>[];
       }) => {
+
         const next =
           new Set<string>();
 
@@ -297,6 +484,7 @@ export function LiveMatchesTab({
           const item
           of viewableItems
         ) {
+
           if (!item.item) {
             continue;
           }
@@ -315,17 +503,15 @@ export function LiveMatchesTab({
     )
       .current;
 
-  /*
-   * ========================================
-   * RENDER
-   * ========================================
-   */
+  const memoryLoading =
+    allSummariesLoading ||
+    allOpponentSummariesLoading;
 
   return (
     <View
-      style={{
-        flex: 1,
-      }}
+      style={
+        styles.container
+      }
     >
       <FlatList
         key="live-matches-list"
@@ -351,6 +537,7 @@ export function LiveMatchesTab({
           ({
             item,
           }) => {
+
             const key =
               liveMatchKey(
                 item
@@ -378,9 +565,34 @@ export function LiveMatchesTab({
           <>
             {header}
 
+            <LiveMemoryFilter
+              mode={
+                memoryFilterMode
+              }
+
+              directCount={
+                directMemoryMatches
+                  .length
+              }
+
+              opponentCount={
+                opponentMemoryMatches
+                  .length
+              }
+
+              loading={
+                memoryLoading
+              }
+
+              onChange={
+                selectMemoryFilter
+              }
+            />
+
             <LiveCompetitionFilter
               totalCount={
-                matches.length
+                filterBaseMatches
+                  .length
               }
 
               visibleCount={
@@ -418,7 +630,11 @@ export function LiveMatchesTab({
         ListEmptyComponent={
           !loading
             ? (
-              <Text>
+              <Text
+                style={
+                  styles.empty
+                }
+              >
                 No hay partidos en vivo con este filtro.
               </Text>
             )

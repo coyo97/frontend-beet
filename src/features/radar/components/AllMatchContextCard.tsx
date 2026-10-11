@@ -15,6 +15,26 @@ import {
   useRadarReviewStore,
 } from "@/features/radar-review/store/radarReviewStore";
 
+import {
+  matchPickKey,
+} from "@/features/match-picks/store/matchPickKey";
+
+import {
+  useMatchPickStore,
+} from "@/features/match-picks/store/matchPickStore";
+
+import {
+  MatchPickQuickActions,
+} from "@/features/match-picks/components/MatchPickQuickActions";
+
+import {
+  LiveTeamMemoryInsight,
+} from "@/features/team-memory/components/LiveTeamMemoryInsight";
+
+import {
+  LiveOpponentMemoryInsight,
+} from "@/features/team-memory/components/LiveOpponentMemoryInsight";
+
 import type {
   LiveMatch,
 } from "@/types/radar";
@@ -72,14 +92,7 @@ export function AllMatchContextCard({
   contextVisible,
 }: Props) {
 
-  /*
-   * Fuente general del partido.
-   *
-   * Se utiliza para:
-   * - abrir detalle
-   * - review
-   * - identidad general
-   */
+  
   const source =
     getPreferredMatchSource(
       match
@@ -110,15 +123,19 @@ const isReviewed =
   reviewStatus ===
   "reviewed";
 
-  /*
-   * Fuente compatible con
-   * MatchContext.
-   *
-   * Si no existe una fuente
-   * compatible, el partido sigue
-   * visible y mostramos contexto
-   * limitado.
-   */
+const pickKey =
+  matchPickKey(
+    match
+  );
+
+const activePick =
+  useMatchPickStore(
+    state =>
+      state.items[
+        pickKey
+      ]
+  );
+ 
   const contextSource =
     getMatchContextSource(
       match
@@ -160,15 +177,19 @@ const isReviewed =
     "-";
 
   return (
-	  <View
+	<View
   style={[
     styles.card,
 
     isReviewed &&
       styles.cardReviewed,
+
+    Boolean(
+      activePick
+    ) &&
+      styles.cardBetPending,
   ]}
->
-          {/*
+>          {/*
        * =========================
        * MATCH HEADER
        * =========================
@@ -266,14 +287,37 @@ const isReviewed =
        * Sin volver a repetir
        * los nombres de los equipos.
        */}
-      <MatchTeamMemoryQuickActions
-        match={
-          match
-        }
-        autoLoad={
-          contextVisible
-        }
-      />
+      <MatchPickQuickActions
+  match={
+    match
+  }
+/>
+<LiveTeamMemoryInsight
+  match={
+    match
+  }
+  autoLoad={
+    contextVisible
+  }
+/>
+
+		  <LiveOpponentMemoryInsight
+  match={
+    match
+  }
+  autoLoad={
+    contextVisible
+  }
+/>
+
+<MatchTeamMemory
+  match={
+    match
+  }
+  autoLoad={
+    contextVisible
+  }
+/>
 
       {/*
        * =========================

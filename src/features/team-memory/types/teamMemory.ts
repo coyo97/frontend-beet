@@ -70,6 +70,42 @@ lastOpponentName:
   null;
 }
 
+export interface TeamMemoryOpponentSummary {
+  opponentName:
+    string;
+
+  opponentKey:
+    string;
+
+  appearances:
+    number;
+
+  winEvents:
+    number;
+
+  lossEvents:
+    number;
+
+  backedTeams:
+    string[];
+
+  lastBackedTeamName:
+    string |
+    null;
+
+  lastOutcome:
+    TeamMemoryOutcome |
+    null;
+
+  lastSeenAt:
+    string |
+    null;
+
+  lastNote:
+    string |
+    null;
+}
+
 export interface CreateTeamMemoryInput {
   teamName:
     string;

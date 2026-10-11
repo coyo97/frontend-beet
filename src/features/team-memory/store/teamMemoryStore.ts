@@ -5,6 +5,8 @@ import {
 import {
   addTeamMemoryEvent,
   deleteTeamMemoryEvent,
+  fetchAllTeamMemoryOpponentSummaries,
+  fetchAllTeamMemorySummaries,
   fetchTeamMemoryHistory,
   fetchTeamMemorySummaries,
 } from "../api/teamMemoryService";
@@ -12,6 +14,7 @@ import {
 import type {
   CreateTeamMemoryInput,
   TeamMemoryEvent,
+  TeamMemoryOpponentSummary,
   TeamMemorySummary,
 } from "../types/teamMemory";
 
@@ -21,7 +24,9 @@ export function teamMemoryKey(
 ): string {
 
   return value
-    .normalize("NFD")
+    .normalize(
+      "NFD"
+    )
     .replace(
       /[\u0300-\u036f]/g,
       ""
@@ -44,6 +49,24 @@ interface State {
       string,
       TeamMemorySummary
     >;
+
+  allSummariesLoaded:
+    boolean;
+
+  allSummariesLoading:
+    boolean;
+
+  opponentSummaries:
+    Record<
+      string,
+      TeamMemoryOpponentSummary
+    >;
+
+  allOpponentSummariesLoaded:
+    boolean;
+
+  allOpponentSummariesLoading:
+    boolean;
 
   history:
     Record<
@@ -68,6 +91,20 @@ interface State {
       string,
       boolean
     >;
+
+  loadAllSummaries:
+    (
+      force?:
+        boolean
+    ) =>
+      Promise<void>;
+
+  loadAllOpponentSummaries:
+    (
+      force?:
+        boolean
+    ) =>
+      Promise<void>;
 
   ensureTeams:
     (
@@ -110,6 +147,21 @@ export const useTeamMemoryStore =
       summaries:
         {},
 
+      allSummariesLoaded:
+        false,
+
+      allSummariesLoading:
+        false,
+
+      opponentSummaries:
+        {},
+
+      allOpponentSummariesLoaded:
+        false,
+
+      allOpponentSummariesLoading:
+        false,
+
       history:
         {},
 
@@ -121,6 +173,147 @@ export const useTeamMemoryStore =
 
       mutatingKeys:
         {},
+
+      loadAllSummaries:
+        async (
+          force =
+            false
+        ) => {
+
+          const current =
+            get();
+
+          if (
+            !force &&
+            current
+              .allSummariesLoaded
+          ) {
+            return;
+          }
+
+          if (
+            current
+              .allSummariesLoading
+          ) {
+            return;
+          }
+
+          set({
+            allSummariesLoading:
+              true,
+          });
+
+          try {
+            const summaries =
+              await fetchAllTeamMemorySummaries();
+
+            set(
+              (
+                state
+              ) => {
+
+                const next = {
+                  ...state
+                    .summaries,
+                };
+
+                for (
+                  const summary
+                  of summaries
+                ) {
+                  next[
+                    teamMemoryKey(
+                      summary
+                        .teamName
+                    )
+                  ] =
+                    summary;
+                }
+
+                return {
+                  summaries:
+                    next,
+
+                  allSummariesLoaded:
+                    true,
+                };
+              }
+            );
+          } finally {
+            set({
+              allSummariesLoading:
+                false,
+            });
+          }
+        },
+
+      loadAllOpponentSummaries:
+        async (
+          force =
+            false
+        ) => {
+
+          const current =
+            get();
+
+          if (
+            !force &&
+            current
+              .allOpponentSummariesLoaded
+          ) {
+            return;
+          }
+
+          if (
+            current
+              .allOpponentSummariesLoading
+          ) {
+            return;
+          }
+
+          set({
+            allOpponentSummariesLoading:
+              true,
+          });
+
+          try {
+            const opponents =
+              await fetchAllTeamMemoryOpponentSummaries();
+
+            const next:
+              Record<
+                string,
+                TeamMemoryOpponentSummary
+              > =
+              {};
+
+            for (
+              const opponent
+              of opponents
+            ) {
+              next[
+                teamMemoryKey(
+                  opponent
+                    .opponentName
+                )
+              ] =
+                opponent;
+            }
+
+            set({
+              opponentSummaries:
+                next,
+
+              allOpponentSummariesLoaded:
+                true,
+            });
+          } finally {
+            set({
+              allOpponentSummariesLoading:
+                false,
+            });
+          }
+        },
 
       ensureTeams:
         async (
@@ -135,9 +328,7 @@ export const useTeamMemoryStore =
                     Boolean
                   )
                   .map(
-                    (
-                      team
-                    ) => [
+                    team => [
                       teamMemoryKey(
                         team
                       ),
@@ -170,9 +361,7 @@ export const useTeamMemoryStore =
           }
 
           set(
-            (
-              state
-            ) => {
+            state => {
 
               const loadingKeys = {
                 ...state
@@ -212,12 +401,11 @@ export const useTeamMemoryStore =
               );
 
             set(
-              (
-                state
-              ) => {
+              state => {
 
                 const next = {
-                  ...state.summaries,
+                  ...state
+                    .summaries,
                 };
 
                 for (
@@ -226,7 +414,8 @@ export const useTeamMemoryStore =
                 ) {
                   next[
                     teamMemoryKey(
-                      summary.teamName
+                      summary
+                        .teamName
                     )
                   ] =
                     summary;
@@ -240,9 +429,7 @@ export const useTeamMemoryStore =
             );
           } finally {
             set(
-              (
-                state
-              ) => {
+              state => {
 
                 const loadingKeys = {
                   ...state
@@ -282,9 +469,10 @@ export const useTeamMemoryStore =
 
           if (
             !force &&
-            get().history[
-              key
-            ]
+            get()
+              .history[
+                key
+              ]
           ) {
             return;
           }
@@ -299,9 +487,7 @@ export const useTeamMemoryStore =
           }
 
           set(
-            (
-              state
-            ) => ({
+            state => ({
               historyLoadingKeys: {
                 ...state
                   .historyLoadingKeys,
@@ -319,9 +505,7 @@ export const useTeamMemoryStore =
               );
 
             set(
-              (
-                state
-              ) => ({
+              state => ({
                 history: {
                   ...state
                     .history,
@@ -333,9 +517,7 @@ export const useTeamMemoryStore =
             );
           } finally {
             set(
-              (
-                state
-              ) => ({
+              state => ({
                 historyLoadingKeys: {
                   ...state
                     .historyLoadingKeys,
@@ -359,9 +541,7 @@ export const useTeamMemoryStore =
             );
 
           set(
-            (
-              state
-            ) => ({
+            state => ({
               mutatingKeys: {
                 ...state
                   .mutatingKeys,
@@ -382,9 +562,7 @@ export const useTeamMemoryStore =
               );
 
             set(
-              (
-                state
-              ) => ({
+              state => ({
                 summaries: {
                   ...state
                     .summaries,
@@ -399,6 +577,7 @@ export const useTeamMemoryStore =
 
                   [key]: [
                     event,
+
                     ...(
                       state
                         .history[
@@ -410,11 +589,14 @@ export const useTeamMemoryStore =
                 },
               })
             );
+
+            await get()
+              .loadAllOpponentSummaries(
+                true
+              );
           } finally {
             set(
-              (
-                state
-              ) => ({
+              state => ({
                 mutatingKeys: {
                   ...state
                     .mutatingKeys,
@@ -438,9 +620,7 @@ export const useTeamMemoryStore =
             );
 
           set(
-            (
-              state
-            ) => ({
+            state => ({
               mutatingKeys: {
                 ...state
                   .mutatingKeys,
@@ -458,43 +638,62 @@ export const useTeamMemoryStore =
               );
 
             set(
-              (
-                state
-              ) => ({
-                summaries: {
+              state => {
+
+                const nextSummaries = {
                   ...state
                     .summaries,
+                };
 
-                  [key]:
-                    result.summary,
-                },
+                if (
+                  result
+                    .summary
+                    .total >
+                  0
+                ) {
+                  nextSummaries[
+                    key
+                  ] =
+                    result
+                      .summary;
+                } else {
+                  delete nextSummaries[
+                    key
+                  ];
+                }
 
-                history: {
-                  ...state
-                    .history,
+                return {
+                  summaries:
+                    nextSummaries,
 
-                  [key]:
-                    (
-                      state
-                        .history[
-                          key
-                        ] ??
-                      []
-                    ).filter(
+                  history: {
+                    ...state
+                      .history,
+
+                    [key]:
                       (
-                        item
-                      ) =>
-                        item.id !==
-                        event.id
-                    ),
-                },
-              })
+                        state
+                          .history[
+                            key
+                          ] ??
+                        []
+                      ).filter(
+                        item =>
+                          item.id !==
+                          event.id
+                      ),
+                  },
+                };
+              }
             );
+
+            await get()
+              .loadAllOpponentSummaries(
+                true
+              );
           } finally {
             set(
-              (
-                state
-              ) => ({
+              state => ({
                 mutatingKeys: {
                   ...state
                     .mutatingKeys,

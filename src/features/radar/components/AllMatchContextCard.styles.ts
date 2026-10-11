@@ -140,4 +140,14 @@ export const styles =
   borderWidth:
     1.5,
 },
+	cardBetPending: {
+  backgroundColor:
+    "#171D31",
+
+  borderColor:
+    "#6076C9",
+
+  borderWidth:
+    1.5,
+},
   });

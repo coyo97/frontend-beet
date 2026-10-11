@@ -10,6 +10,7 @@ import type {
   CreateTeamMemoryInput,
   TeamMemoryEvent,
   TeamMemorySummary,
+  TeamMemoryOpponentSummary,
 } from "../types/teamMemory";
 
 import {
@@ -87,6 +88,46 @@ export async function fetchAllTeamMemorySummaries():
       };
 
   return body.summaries;
+}
+
+export async function fetchAllTeamMemoryOpponentSummaries():
+  Promise<
+    TeamMemoryOpponentSummary[]
+  > {
+
+  const headers =
+    await getHeaders();
+
+  const response =
+    await fetch(
+      `${BASE}/opponents`,
+      {
+        method:
+          "GET",
+
+        headers,
+      }
+    );
+
+  if (
+    !response.ok
+  ) {
+    throw new Error(
+      await getErrorMessage(
+        response,
+        "Could not list team memory opponents"
+      )
+    );
+  }
+
+  const body =
+    await response
+      .json() as {
+        opponents:
+          TeamMemoryOpponentSummary[];
+      };
+
+  return body.opponents;
 }
 
 async function getErrorMessage(
