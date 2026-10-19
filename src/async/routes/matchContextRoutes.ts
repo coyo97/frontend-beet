@@ -7,7 +7,7 @@ import type {
 } from "../../types/matchContext";
 
 const BASE =
-  `${env.API_BASE_URL}/football`;
+  "/football";
 
 function queryValue(
   value:

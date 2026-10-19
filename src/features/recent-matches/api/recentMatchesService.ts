@@ -2,6 +2,7 @@ import {
   get,
 } from "@/async/api";
 
+
 import {
   env,
 } from "@/config/env";
@@ -12,7 +13,7 @@ import type {
 } from "../types/recentMatch";
 
 const ENDPOINT =
-  `${env.API_BASE_URL}/football/recent`;
+  "/football/recent";
 
 interface Options {
   hours?:

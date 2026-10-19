@@ -3,9 +3,13 @@ import {
 } from "react";
 
 import {
-  getRadarSocket,
+  getRadarSocketAsync,
   RADAR_SOCKET_EVENTS,
 } from "@/async/socket/radarSocket";
+
+import {
+  serverConfigService,
+} from "@/features/server-config/serverConfigModule";
 
 import {
   useSharedMatchStore,
@@ -38,110 +42,134 @@ export function useSharedMatchRealtime():
 
   useEffect(
     () => {
-      const socket =
-        getRadarSocket();
 
-      /*
-       * ========================================
-       * REALTIME SHARED MATCH
-       * ========================================
-       */
+      let cancelled =
+        false;
 
-      const onSharedMatch =
-        (
-          payload:
-            SharedMatchInsight
-        ) => {
+      let cleanupSocket:
+        (() => void) |
+        null =
+        null;
 
-          console.log(
-            "[SharedMatch] realtime",
-            payload
-              .createdByUser
-              .username,
-            payload
-              .match
-              .homeName,
-            "vs",
-            payload
-              .match
-              .awayName
-          );
+      const bindSocket =
+        async () => {
 
-          addRealtime(
-            payload
-          );
+          try {
+            const socket =
+              await getRadarSocketAsync();
+
+            if (cancelled) {
+              return;
+            }
+
+            /*
+             * Si cambió el backend,
+             * eliminamos listeners del
+             * socket anterior.
+             */
+            cleanupSocket?.();
+
+            const onSharedMatch =
+              (
+                payload:
+                  SharedMatchInsight
+              ) => {
+
+                addRealtime(
+                  payload
+                );
+              };
+
+            const onConnect =
+              () => {
+
+                void loadGroup();
+
+                void load();
+              };
+
+            socket.on(
+              RADAR_SOCKET_EVENTS
+                .SHARED_MATCH,
+              onSharedMatch
+            );
+
+            socket.on(
+              "connect",
+              onConnect
+            );
+
+            cleanupSocket =
+              () => {
+
+                socket.off(
+                  RADAR_SOCKET_EVENTS
+                    .SHARED_MATCH,
+                  onSharedMatch
+                );
+
+                socket.off(
+                  "connect",
+                  onConnect
+                );
+              };
+
+          } catch (
+            error
+          ) {
+
+            if (cancelled) {
+              return;
+            }
+
+            console.warn(
+              "[SharedMatch] socket bind failed",
+              error
+            );
+          }
         };
 
       /*
-       * ========================================
-       * SOCKET RECONNECTED
-       * ========================================
+       * Carga inicial REST.
        *
-       * Cuando recuperamos conexión:
-       *
-       * 1. actualizamos el grupo;
-       * 2. recuperamos compartidos desde Mongo.
-       *
-       * Así no perdemos eventos ocurridos
-       * mientras el móvil estuvo desconectado.
+       * Si no hay sesión, el store/API
+       * correspondiente decidirá qué hacer.
        */
-
-      const onConnect =
-        () => {
-          void loadGroup();
-
-          void load();
-        };
-
-      /*
-       * ========================================
-       * SOCKET LISTENERS
-       * ========================================
-       */
-
-      socket.on(
-        RADAR_SOCKET_EVENTS
-          .SHARED_MATCH,
-        onSharedMatch
-      );
-
-      socket.on(
-        "connect",
-        onConnect
-      );
-
-      /*
-       * ========================================
-       * INITIAL LOAD
-       * ========================================
-       *
-       * También cargamos inmediatamente,
-       * porque es posible que el socket
-       * ya estuviera conectado antes de
-       * montar este hook.
-       */
-
       void loadGroup();
 
       void load();
 
       /*
-       * ========================================
-       * CLEANUP
-       * ========================================
+       * Bind inicial.
        */
+      void bindSocket();
+
+      /*
+       * Si desde Configuración cambiamos:
+       *
+       * abc.trycloudflare.com
+       *          ↓
+       * xyz.trycloudflare.com
+       *
+       * volvemos a enlazar Shared Match
+       * con el nuevo singleton.
+       */
+      const unsubscribeServer =
+        serverConfigService
+          .subscribe(
+            () => {
+              void bindSocket();
+            }
+          );
 
       return () => {
-        socket.off(
-          RADAR_SOCKET_EVENTS
-            .SHARED_MATCH,
-          onSharedMatch
-        );
 
-        socket.off(
-          "connect",
-          onConnect
-        );
+        cancelled =
+          true;
+
+        unsubscribeServer();
+
+        cleanupSocket?.();
       };
     },
     [

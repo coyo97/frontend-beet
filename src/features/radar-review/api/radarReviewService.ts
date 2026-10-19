@@ -1,6 +1,8 @@
 import {
-  env,
-} from "@/config/env";
+  del,
+  get,
+  put,
+} from "@/async/api";
 
 import type {
   RadarReview,
@@ -8,31 +10,20 @@ import type {
 } from "../types/radarReview";
 
 const BASE =
-  `${env.API_BASE_URL}/radar/reviews`;
+  "/radar/reviews";
 
 export async function fetchRadarReviews():
   Promise<
     RadarReview[]
   > {
 
-  const response =
-    await fetch(
-      BASE
-    );
-
-  if (
-    !response.ok
-  ) {
-    throw new Error(
-      `Could not load radar reviews: ${response.status}`
-    );
-  }
-
   const body =
-    await response.json() as {
+    await get<{
       items:
         RadarReview[];
-    };
+    }>(
+      BASE
+    );
 
   return body.items;
 }
@@ -51,40 +42,22 @@ export async function saveRadarReview(
 > {
 
   const url =
-    `${BASE}/${encodeURIComponent(provider)}/${encodeURIComponent(externalId)}`;
-
-  const response =
-    await fetch(
-      url,
-      {
-        method:
-          "PUT",
-
-        headers: {
-          "Content-Type":
-            "application/json",
-        },
-
-        body:
-          JSON.stringify({
-            status,
-          }),
-      }
-    );
-
-  if (
-    !response.ok
-  ) {
-    throw new Error(
-      `Could not save radar review: ${response.status}`
-    );
-  }
+    `${BASE}/${encodeURIComponent(
+      provider
+    )}/${encodeURIComponent(
+      externalId
+    )}`;
 
   const body =
-    await response.json() as {
+    await put<{
       item:
         RadarReview;
-    };
+    }>(
+      url,
+      {
+        status,
+      }
+    );
 
   return body.item;
 }
@@ -98,24 +71,15 @@ export async function resetRadarReview(
 ): Promise<void> {
 
   const url =
-    `${BASE}/${encodeURIComponent(provider)}/${encodeURIComponent(externalId)}`;
+    `${BASE}/${encodeURIComponent(
+      provider
+    )}/${encodeURIComponent(
+      externalId
+    )}`;
 
-  const response =
-    await fetch(
-      url,
-      {
-        method:
-          "DELETE",
-      }
-    );
-
-  if (
-    !response.ok &&
-    response.status !==
-      204
-  ) {
-    throw new Error(
-      `Could not reset radar review: ${response.status}`
-    );
-  }
+  await del<
+    unknown
+  >(
+    url
+  );
 }

@@ -1,13 +1,12 @@
 import {
-  env,
-} from "@/config/env";
+  ApiError,
+  get,
+  post,
+} from "@/async/api";
 
 import {
   getAuthToken,
 } from "../storage/authToken";
-
-const BASE =
-  `${env.API_BASE_URL}/auth`;
 
 export interface AuthUser {
   id:
@@ -25,82 +24,57 @@ export interface LoginResponse {
     AuthUser;
 }
 
-async function readResponse<T>(
-  response: Response
-): Promise<T> {
-  const body =
-    await response.json();
-
-  if (!response.ok) {
-    throw new Error(
-      typeof body?.message === "string"
-        ? body.message
-        : "Error de autenticación"
-    );
-  }
-
-  return body as T;
-}
-
 export async function registerUser(
-  username: string,
-  password: string
-): Promise<AuthUser> {
+  username:
+    string,
+
+  password:
+    string
+): Promise<
+  AuthUser
+> {
+
   const response =
-    await fetch(
-      `${BASE}/register`,
+    await post<{
+      user:
+        AuthUser;
+    }>(
+      "/auth/register",
       {
-        method: "POST",
-
-        headers: {
-          "Content-Type":
-            "application/json",
-        },
-
-        body: JSON.stringify({
-          username,
-          password,
-        }),
+        username,
+        password,
       }
     );
 
-  const result =
-    await readResponse<{
-      user: AuthUser;
-    }>(response);
-
-  return result.user;
+  return response.user;
 }
 
 export async function loginUser(
-  username: string,
-  password: string
-): Promise<LoginResponse> {
-  const response =
-    await fetch(
-      `${BASE}/login`,
-      {
-        method: "POST",
+  username:
+    string,
 
-        headers: {
-          "Content-Type":
-            "application/json",
-        },
+  password:
+    string
+): Promise<
+  LoginResponse
+> {
 
-        body: JSON.stringify({
-          username,
-          password,
-        }),
-      }
-    );
-
-  return readResponse<LoginResponse>(
-    response
+  return post<
+    LoginResponse
+  >(
+    "/auth/login",
+    {
+      username,
+      password,
+    }
   );
 }
 
 export async function fetchCurrentUser():
-  Promise<AuthUser> {
+  Promise<
+    AuthUser
+  > {
+
   const token =
     await getAuthToken();
 
@@ -110,27 +84,39 @@ export async function fetchCurrentUser():
     );
   }
 
-  const response =
-    await fetch(
-      `${BASE}/me`,
-      {
-        headers: {
-          Authorization:
-            `Bearer ${token}`,
-        },
-      }
-    );
+  try {
+    const response =
+      await get<{
+        user:
+          AuthUser;
+      }>(
+        "/auth/me",
+        {},
+        {
+          headers: {
+            Authorization:
+              `Bearer ${token}`,
+          },
+        }
+      );
 
-  if (response.status === 401) {
-    throw new Error(
-      "INVALID_SESSION"
-    );
+    return response.user;
+
+  } catch (
+    error
+  ) {
+
+    if (
+      error instanceof
+        ApiError &&
+      error.status ===
+        401
+    ) {
+      throw new Error(
+        "INVALID_SESSION"
+      );
+    }
+
+    throw error;
   }
-
-  const body =
-    await readResponse<{
-      user: AuthUser;
-    }>(response);
-
-  return body.user;
 }

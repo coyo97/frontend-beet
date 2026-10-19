@@ -859,6 +859,50 @@ const selectLiveLeague =
           }
         >
           <View>
+
+			  <TouchableOpacity
+  activeOpacity={
+    0.8
+  }
+  onPress={
+    () =>
+      router.push(
+        "/server-settings"
+      )
+  }
+  style={{
+    paddingHorizontal:
+      10,
+
+    paddingVertical:
+      7,
+
+    borderRadius:
+      8,
+
+    borderWidth:
+      1,
+
+    borderColor:
+      "#303844",
+  }}
+>
+  <Text
+    style={{
+      color:
+        "#AAB4C2",
+
+      fontSize:
+        11,
+
+      fontWeight:
+        "800",
+    }}
+  >
+    ⚙ Servidor
+  </Text>
+</TouchableOpacity>
+
             <Text
               style={
                 styles.title

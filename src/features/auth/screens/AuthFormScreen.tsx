@@ -15,6 +15,10 @@ import {
 } from "expo-router";
 
 import {
+  OpenServerSettingsButton,
+} from "@/features/server-config/presentation/components/OpenServerSettingsButton";
+
+import {
   registerUser,
 } from "../api/authService";
 
@@ -159,6 +163,10 @@ export function AuthFormScreen({
             ? "Crear cuenta"
             : "Iniciar sesión"}
         </Text>
+
+		  {mode === "login" && (
+  <OpenServerSettingsButton />
+)}
 
         <Text
           style={

@@ -1,30 +1,26 @@
 import {
-  env,
-} from "@/config/env";
-
-import {
-  getTeamMemoryOwnerId,
-} from "../storage/teamMemoryOwner";
-
-import type {
-  CreateTeamMemoryInput,
-  TeamMemoryEvent,
-  TeamMemorySummary,
-  TeamMemoryOpponentSummary,
-} from "../types/teamMemory";
+  del,
+  get,
+  post,
+  type ApiRequestOptions,
+} from "@/async/api";
 
 import {
   getAuthToken,
 } from "@/features/auth/storage/authToken";
 
-const BASE =
-  `${env.API_BASE_URL}/team-memory`;
+import type {
+  CreateTeamMemoryInput,
+  TeamMemoryEvent,
+  TeamMemoryOpponentSummary,
+  TeamMemorySummary,
+} from "../types/teamMemory";
 
-async function getHeaders(
-  json = false
-): Promise<
-  Record<string, string>
-> {
+async function requiredAuthOptions():
+  Promise<
+    ApiRequestOptions
+  > {
+
   const token =
     await getAuthToken();
 
@@ -35,18 +31,10 @@ async function getHeaders(
   }
 
   return {
-    Accept:
-      "application/json",
-
-    Authorization:
-      `Bearer ${token}`,
-
-    ...(json
-      ? {
-          "Content-Type":
-            "application/json",
-        }
-      : {}),
+    headers: {
+      Authorization:
+        `Bearer ${token}`,
+    },
   };
 }
 
@@ -55,39 +43,17 @@ export async function fetchAllTeamMemorySummaries():
     TeamMemorySummary[]
   > {
 
-  const headers =
-    await getHeaders();
-
   const response =
-    await fetch(
-      `${BASE}/summaries`,
-      {
-        method:
-          "GET",
-
-        headers,
-      }
+    await get<{
+      summaries:
+        TeamMemorySummary[];
+    }>(
+      "/team-memory/summaries",
+      {},
+      await requiredAuthOptions()
     );
 
-  if (
-    !response.ok
-  ) {
-    throw new Error(
-      await getErrorMessage(
-        response,
-        "Could not list team memory"
-      )
-    );
-  }
-
-  const body =
-    await response
-      .json() as {
-        summaries:
-          TeamMemorySummary[];
-      };
-
-  return body.summaries;
+  return response.summaries;
 }
 
 export async function fetchAllTeamMemoryOpponentSummaries():
@@ -95,72 +61,17 @@ export async function fetchAllTeamMemoryOpponentSummaries():
     TeamMemoryOpponentSummary[]
   > {
 
-  const headers =
-    await getHeaders();
-
   const response =
-    await fetch(
-      `${BASE}/opponents`,
-      {
-        method:
-          "GET",
-
-        headers,
-      }
+    await get<{
+      opponents:
+        TeamMemoryOpponentSummary[];
+    }>(
+      "/team-memory/opponents",
+      {},
+      await requiredAuthOptions()
     );
 
-  if (
-    !response.ok
-  ) {
-    throw new Error(
-      await getErrorMessage(
-        response,
-        "Could not list team memory opponents"
-      )
-    );
-  }
-
-  const body =
-    await response
-      .json() as {
-        opponents:
-          TeamMemoryOpponentSummary[];
-      };
-
-  return body.opponents;
-}
-
-async function getErrorMessage(
-  response:
-    Response,
-
-  fallback:
-    string
-): Promise<string> {
-
-  try {
-    const body =
-      await response
-        .clone()
-        .json() as {
-          message?:
-            unknown;
-        };
-
-    if (
-      typeof body.message ===
-        "string" &&
-      body.message.trim()
-    ) {
-      return body
-        .message
-        .trim();
-    }
-  } catch {
-    // Respuesta sin JSON.
-  }
-
-  return `${fallback}: ${response.status}`;
+  return response.opponents;
 }
 
 export async function fetchTeamMemorySummaries(
@@ -170,46 +81,19 @@ export async function fetchTeamMemorySummaries(
   TeamMemorySummary[]
 > {
 
-  const headers =
-    await getHeaders(
-      true
-    );
-
   const response =
-    await fetch(
-      `${BASE}/summaries`,
+    await post<{
+      summaries:
+        TeamMemorySummary[];
+    }>(
+      "/team-memory/summaries",
       {
-        method:
-          "POST",
-
-        headers,
-
-        body:
-          JSON.stringify({
-            teams,
-          }),
-      }
+        teams,
+      },
+      await requiredAuthOptions()
     );
 
-  if (
-    !response.ok
-  ) {
-    throw new Error(
-      await getErrorMessage(
-        response,
-        "Could not load team memory"
-      )
-    );
-  }
-
-  const body =
-    await response
-      .json() as {
-        summaries:
-          TeamMemorySummary[];
-      };
-
-  return body.summaries;
+  return response.summaries;
 }
 
 export async function fetchTeamMemoryHistory(
@@ -219,41 +103,23 @@ export async function fetchTeamMemoryHistory(
   TeamMemoryEvent[]
 > {
 
-  const headers =
-    await getHeaders();
-
   const response =
-    await fetch(
-      `${BASE}/events?team=${encodeURIComponent(
-        teamName
-      )}&limit=30`,
+    await get<{
+      items:
+        TeamMemoryEvent[];
+    }>(
+      "/team-memory/events",
       {
-        method:
-          "GET",
+        team:
+          teamName,
 
-        headers,
-      }
+        limit:
+          30,
+      },
+      await requiredAuthOptions()
     );
 
-  if (
-    !response.ok
-  ) {
-    throw new Error(
-      await getErrorMessage(
-        response,
-        "Could not load team memory history"
-      )
-    );
-  }
-
-  const body =
-    await response
-      .json() as {
-        items:
-          TeamMemoryEvent[];
-      };
-
-  return body.items;
+  return response.items;
 }
 
 export async function addTeamMemoryEvent(
@@ -267,46 +133,17 @@ export async function addTeamMemoryEvent(
     TeamMemorySummary;
 }> {
 
-  const headers =
-    await getHeaders(
-      true
-    );
+  return post<{
+    event:
+      TeamMemoryEvent;
 
-  const response =
-    await fetch(
-      `${BASE}/events`,
-      {
-        method:
-          "POST",
-
-        headers,
-
-        body:
-          JSON.stringify(
-            input
-          ),
-      }
-    );
-
-  if (
-    !response.ok
-  ) {
-    throw new Error(
-      await getErrorMessage(
-        response,
-        "Could not save team memory"
-      )
-    );
-  }
-
-  return await response
-    .json() as {
-      event:
-        TeamMemoryEvent;
-
-      summary:
-        TeamMemorySummary;
-    };
+    summary:
+      TeamMemorySummary;
+  }>(
+    "/team-memory/events",
+    input,
+    await requiredAuthOptions()
+  );
 }
 
 export async function deleteTeamMemoryEvent(
@@ -320,39 +157,16 @@ export async function deleteTeamMemoryEvent(
     TeamMemorySummary;
 }> {
 
-  const headers =
-    await getHeaders();
+  return del<{
+    deleted:
+      TeamMemoryEvent;
 
-  const response =
-    await fetch(
-      `${BASE}/events/${encodeURIComponent(
-        id
-      )}`,
-      {
-        method:
-          "DELETE",
-
-        headers,
-      }
-    );
-
-  if (
-    !response.ok
-  ) {
-    throw new Error(
-      await getErrorMessage(
-        response,
-        "Could not delete team memory event"
-      )
-    );
-  }
-
-  return await response
-    .json() as {
-      deleted:
-        TeamMemoryEvent;
-
-      summary:
-        TeamMemorySummary;
-    };
+    summary:
+      TeamMemorySummary;
+  }>(
+    `/team-memory/events/${encodeURIComponent(
+      id
+    )}`,
+    await requiredAuthOptions()
+  );
 }

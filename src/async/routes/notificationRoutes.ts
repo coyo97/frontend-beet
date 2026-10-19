@@ -1,13 +1,10 @@
-import {
-  env,
-} from "../../config/env";
-
 const BASE =
-  `${env.API_BASE_URL}/notifications`;
+  "/notifications";
 
 export const notificationRoutes = {
   registerDevice:
     `${BASE}/devices`,
+
   preferences:
-  `${BASE}/preferences`,
+    `${BASE}/preferences`,
 } as const;

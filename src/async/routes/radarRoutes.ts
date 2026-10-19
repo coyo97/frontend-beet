@@ -1,12 +1,8 @@
-import {
-  env,
-} from "../../config/env";
-
 const RADAR_BASE =
-  `${env.API_BASE_URL}/radar`;
+  "/radar";
 
 const FOOTBALL_BASE =
-  `${env.API_BASE_URL}/football`;
+  "/football";
 
 export const radarRoutes = {
   live:
@@ -16,7 +12,7 @@ export const radarRoutes = {
     `${RADAR_BASE}/red-cards`,
 
   redCardsV2:
-  `${RADAR_BASE}/red-cards/v2`,
+    `${RADAR_BASE}/red-cards/v2`,
 
   redCardPressure:
     `${RADAR_BASE}/red-card-pressure`,
@@ -26,7 +22,8 @@ export const radarRoutes = {
 
   matchStatistics:
     (
-      id: string
+      id:
+        string
     ) =>
       `${FOOTBALL_BASE}/matches/${encodeURIComponent(
         id
@@ -34,7 +31,8 @@ export const radarRoutes = {
 
   matchPressure:
     (
-      id: string
+      id:
+        string
     ) =>
       `${RADAR_BASE}/matches/${encodeURIComponent(
         id

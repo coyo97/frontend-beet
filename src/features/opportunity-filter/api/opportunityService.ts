@@ -12,7 +12,7 @@ import type {
 } from "../types/opportunity";
 
 const ENDPOINT =
-  `${env.API_BASE_URL}/opportunities`;
+  "/opportunities";
 
 export async function fetchOpportunities(
   filters:

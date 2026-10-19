@@ -3,6 +3,12 @@ import {
 } from "@/config/env";
 
 import {
+  get,
+  post,
+  type ApiRequestOptions,
+} from "@/async/api";
+
+import {
   getAuthToken,
 } from "@/features/auth/storage/authToken";
 
@@ -20,7 +26,7 @@ import type {
 } from "../types/sharedMatch";
 
 const BASE =
-  `${env.API_BASE_URL}/sharing`;
+  "/sharing";
 
 async function request<T>(
   path:
@@ -35,6 +41,7 @@ async function request<T>(
       unknown;
   } = {}
 ): Promise<T> {
+
   const token =
     await getAuthToken();
 
@@ -44,63 +51,33 @@ async function request<T>(
     );
   }
 
-  const response =
-    await fetch(
-      `${BASE}${path}`,
-      {
-        method:
-          options.method ??
-          "GET",
+  const requestOptions:
+    ApiRequestOptions = {
+      headers: {
+        Authorization:
+          `Bearer ${token}`,
+      },
+    };
 
-        headers: {
-          Accept:
-            "application/json",
+  const endpoint =
+    `${BASE}${path}`;
 
-          Authorization:
-            `Bearer ${token}`,
-
-          ...(
-            options.body !==
-              undefined
-              ? {
-                  "Content-Type":
-                    "application/json",
-                }
-              : {}
-          ),
-        },
-
-        body:
-          options.body !==
-            undefined
-            ? JSON.stringify(
-                options.body
-              )
-            : undefined,
-      }
-    );
-
-  const data =
-    await response
-      .json()
-      .catch(
-        () => null
-      );
-
-  if (!response.ok) {
-    const message =
-      data &&
-      typeof data.message ===
-        "string"
-        ? data.message
-        : `HTTP ${response.status}`;
-
-    throw new Error(
-      message
+  if (
+    options.method ===
+      "POST"
+  ) {
+    return post<T>(
+      endpoint,
+      options.body,
+      requestOptions
     );
   }
 
-  return data as T;
+  return get<T>(
+    endpoint,
+    {},
+    requestOptions
+  );
 }
 
 export async function getSharingGroup():

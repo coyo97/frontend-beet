@@ -1,9 +1,5 @@
-import {
-  env,
-} from "../../config/env";
-
 const BASE =
-  `${env.API_BASE_URL}/watchlist`;
+  "/watchlist";
 
 export const watchlistRoutes = {
   list:
@@ -14,7 +10,8 @@ export const watchlistRoutes = {
 
   enabled:
     (
-      id: string
+      id:
+        string
     ) =>
       `${BASE}/${encodeURIComponent(
         id
@@ -22,7 +19,8 @@ export const watchlistRoutes = {
 
   remove:
     (
-      id: string
+      id:
+        string
     ) =>
       `${BASE}/${encodeURIComponent(
         id

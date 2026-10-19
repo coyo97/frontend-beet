@@ -1,3 +1,7 @@
+import {
+  serverConfigService,
+} from "@/features/server-config/serverConfigModule";
+
 type HttpMethod =
   | "GET"
   | "POST"
@@ -17,6 +21,18 @@ export type QueryParams =
     string,
     QueryValue
   >;
+
+  export interface ApiRequestOptions {
+  headers?:
+    Record<
+      string,
+      string
+    >;
+
+  signal?:
+    AbortSignal;
+}
+
 
 export class ApiError
   extends Error
@@ -74,23 +90,44 @@ function buildQuery(
 }
 
 async function request<T>(
-  endpoint: string,
-  method: HttpMethod,
-  payload?: unknown
+  endpoint:
+    string,
+
+  method:
+    HttpMethod,
+
+  payload?:
+    unknown,
+
+  requestOptions:
+    ApiRequestOptions = {}
 ): Promise<T> {
 
-  const options:
-    RequestInit = {
-      method,
+	const resolvedEndpoint =
+  await serverConfigService
+    .resolveApiEndpoint(
+      endpoint
+    );
 
-      headers: {
-        Accept:
-          "application/json",
+const options:
+  RequestInit = {
+    method,
 
-        "Content-Type":
-          "application/json",
-      },
-    };
+    headers: {
+      Accept:
+        "application/json",
+
+      "Content-Type":
+        "application/json",
+
+      ...requestOptions
+        .headers,
+    },
+
+    signal:
+      requestOptions
+        .signal,
+  };
 
   if (
     payload !== undefined &&
@@ -104,10 +141,10 @@ async function request<T>(
 
   try {
     const response =
-      await fetch(
-        endpoint,
-        options
-      );
+   await fetch(
+  resolvedEndpoint,
+  options
+);
 
     const text =
       await response.text();
@@ -169,7 +206,7 @@ async function request<T>(
 
     console.warn(
       "[API]",
-      endpoint,
+	  resolvedEndpoint,
       message
     );
 
@@ -180,46 +217,94 @@ async function request<T>(
 }
 
 export function get<T>(
-  endpoint: string,
+  endpoint:
+    string,
+
   params:
-    QueryParams = {}
+    QueryParams = {},
+
+  options:
+    ApiRequestOptions = {}
 ): Promise<T> {
 
   return request<T>(
     `${endpoint}${buildQuery(
       params
     )}`,
-    "GET"
+    "GET",
+    undefined,
+    options
   );
 }
 
 export function post<T>(
-  endpoint: string,
-  payload?: unknown
+  endpoint:
+    string,
+
+  payload?:
+    unknown,
+
+  options:
+    ApiRequestOptions = {}
 ): Promise<T> {
 
   return request<T>(
     endpoint,
     "POST",
-    payload
+    payload,
+    options
   );
 }
 export function patch<T>(
-  endpoint: string,
-  payload: unknown
+  endpoint:
+    string,
+
+  payload:
+    unknown,
+
+  options:
+    ApiRequestOptions = {}
 ): Promise<T> {
+
   return request<T>(
     endpoint,
     "PATCH",
-    payload
+    payload,
+    options
   );
 }
 
 export function del<T>(
-  endpoint: string
+  endpoint:
+    string,
+
+  options:
+    ApiRequestOptions = {}
 ): Promise<T> {
+
   return request<T>(
     endpoint,
-    "DELETE"
+    "DELETE",
+    undefined,
+    options
+  );
+}
+
+export function put<T>(
+  endpoint:
+    string,
+
+  payload:
+    unknown,
+
+  options:
+    ApiRequestOptions = {}
+): Promise<T> {
+
+  return request<T>(
+    endpoint,
+    "PUT",
+    payload,
+    options
   );
 }

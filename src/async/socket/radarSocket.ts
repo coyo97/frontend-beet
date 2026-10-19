@@ -4,27 +4,21 @@ import {
 } from "socket.io-client";
 
 import {
-  env,
-} from "../../config/env";
-
-import type {
-  WatchlistAlertEnvelope,
-} from "../../types/watchlist";
+  serverConfigService,
+} from "@/features/server-config/serverConfigModule";
 
 import {
   getAuthToken,
 } from "@/features/auth/storage/authToken";
 
 import type {
+  WatchlistAlertEnvelope,
+} from "../../types/watchlist";
+
+import type {
   RadarSocketEnvelope,
   RedCardDetectedSocketEnvelope,
 } from "../../types/radar";
-
-/*
- * ========================================
- * SOCKET EVENTS
- * ========================================
- */
 
 export const RADAR_SOCKET_EVENTS = {
   RED_CARD_PRESSURE:
@@ -36,47 +30,106 @@ export const RADAR_SOCKET_EVENTS = {
   WATCHLIST_ALERT:
     "watchlist:alert",
 
-  /*
-   * Partido compartido entre
-   * miembros del grupo privado.
-   *
-   * Todavía no lo escuchamos aquí.
-   * Lo conectaremos con el store
-   * de compartidos en el siguiente paso.
-   */
   SHARED_MATCH:
     "sharing:match",
-
 } as const;
+
+interface RadarSocketHandlers {
+  onConnect?:
+    () => void;
+
+  onDisconnect?:
+    () => void;
+
+  onSignal?:
+    (
+      payload:
+        RadarSocketEnvelope
+    ) => void;
+
+  onRedCardDetected?:
+    (
+      payload:
+        RedCardDetectedSocketEnvelope
+    ) => void;
+
+  onWatchlistAlert?:
+    (
+      payload:
+        WatchlistAlertEnvelope
+    ) => void;
+
+  onError?:
+    (
+      message:
+        string
+    ) => void;
+}
+
+let socket:
+  Socket |
+  null =
+  null;
+
+let socketUrl:
+  string |
+  null =
+  null;
 
 /*
  * ========================================
- * SOCKET SINGLETON
+ * SOCKET FACTORY
  * ========================================
+ *
+ * La URL YA NO viene directamente
+ * de env.SOCKET_URL.
+ *
+ * ServerConfigService decide:
+ *
+ * override runtime
+ *        ↓
+ * servidor predeterminado
  */
+async function ensureRadarSocket():
+  Promise<
+    Socket
+  > {
 
-let socket:
-  Socket | null = null;
+  const nextUrl =
+    await serverConfigService
+      .getSocketUrl();
 
-export function getRadarSocket():
-  Socket {
-
-  if (socket) {
+  /*
+   * Mismo backend:
+   * reutilizamos el singleton.
+   */
+  if (
+    socket &&
+    socketUrl ===
+      nextUrl
+  ) {
     return socket;
   }
 
+  /*
+   * Cambió Cloudflare / backend.
+   *
+   * Cerramos el socket anterior.
+   */
+  if (socket) {
+    socket.disconnect();
+
+    socket.auth =
+      {};
+  }
+
+  socketUrl =
+    nextUrl;
+
   socket =
     io(
-      env.SOCKET_URL,
+      nextUrl,
       {
-        /*
-         * MUY IMPORTANTE:
-         *
-         * No conectamos inmediatamente.
-         *
-         * Primero necesitamos leer
-         * el JWT desde SecureStore.
-         */
         autoConnect:
           false,
 
@@ -99,73 +152,61 @@ export function getRadarSocket():
   return socket;
 }
 
+export async function getRadarSocketAsync():
+  Promise<
+    Socket
+  > {
+
+  return ensureRadarSocket();
+}
+
+
 /*
- * ========================================
- * CONNECT
- * ========================================
+ * Se conserva para cualquier código
+ * existente que quiera consultar
+ * el singleton.
  */
+export function getRadarSocket():
+  Socket {
+
+  if (!socket) {
+    throw new Error(
+      "Radar socket has not been initialized"
+    );
+  }
+
+  return socket;
+}
 
 export function connectRadarSocket(
-  handlers: {
-    onConnect?:
-      () => void;
-
-    onDisconnect?:
-      () => void;
-
-    onSignal?:
-      (
-        payload:
-          RadarSocketEnvelope
-      ) => void;
-
-    onRedCardDetected?:
-      (
-        payload:
-          RedCardDetectedSocketEnvelope
-      ) => void;
-
-    onWatchlistAlert?:
-      (
-        payload:
-          WatchlistAlertEnvelope
-      ) => void;
-
-    onError?:
-      (
-        message:
-          string
-      ) => void;
-  }
+  handlers:
+    RadarSocketHandlers
 ): () => void {
 
-  const radarSocket =
-    getRadarSocket();
-
-  /*
-   * Si el componente se desmonta mientras
-   * SecureStore está leyendo el token,
-   * evitamos conectar el socket después.
-   */
   let cancelled =
     false;
 
+  let activeSocket:
+    Socket |
+    null =
+    null;
+
   /*
-   * ========================================
-   * EVENT HANDLERS
-   * ========================================
+   * Evita carreras si cambia el
+   * servidor mientras SecureStore
+   * todavía está leyendo el JWT.
    */
+  let generation =
+    0;
 
   const onConnect =
     () => {
-
       handlers
         .onConnect?.();
     };
 
   const onDisconnect =
     () => {
-
       handlers
         .onDisconnect?.();
     };
@@ -218,73 +259,107 @@ export function connectRadarSocket(
         );
     };
 
-  /*
-   * ========================================
-   * REGISTER LISTENERS
-   * ========================================
-   */
+  const detach =
+    (
+      target:
+        Socket
+    ) => {
 
-  radarSocket.on(
-    "connect",
-    onConnect
-  );
+      target.off(
+        "connect",
+        onConnect
+      );
 
-  radarSocket.on(
-    "disconnect",
-    onDisconnect
-  );
+      target.off(
+        "disconnect",
+        onDisconnect
+      );
 
-  radarSocket.on(
-    "connect_error",
-    onError
-  );
+      target.off(
+        "connect_error",
+        onError
+      );
 
-  radarSocket.on(
-    RADAR_SOCKET_EVENTS
-      .RED_CARD_PRESSURE,
+      target.off(
+        RADAR_SOCKET_EVENTS
+          .RED_CARD_PRESSURE,
+        onSignal
+      );
 
-    onSignal
-  );
+      target.off(
+        RADAR_SOCKET_EVENTS
+          .RED_CARD_DETECTED,
+        onRedCardDetected
+      );
 
-  radarSocket.on(
-    RADAR_SOCKET_EVENTS
-      .RED_CARD_DETECTED,
+      target.off(
+        RADAR_SOCKET_EVENTS
+          .WATCHLIST_ALERT,
+        onWatchlistAlert
+      );
+    };
 
-    onRedCardDetected
-  );
+  const attach =
+    (
+      target:
+        Socket
+    ) => {
 
-  radarSocket.on(
-    RADAR_SOCKET_EVENTS
-      .WATCHLIST_ALERT,
+      target.on(
+        "connect",
+        onConnect
+      );
 
-    onWatchlistAlert
-  );
+      target.on(
+        "disconnect",
+        onDisconnect
+      );
 
-  /*
-   * ========================================
-   * AUTHENTICATED CONNECTION
-   * ========================================
-   *
-   * SecureStore es asíncrono.
-   *
-   * Por eso:
-   *
-   * 1. obtenemos JWT
-   * 2. lo agregamos a handshake.auth
-   * 3. recién conectamos Socket.IO
-   *
-   * Backend recibirá:
-   *
-   * socket.handshake.auth.token
-   */
+      target.on(
+        "connect_error",
+        onError
+      );
 
-  void (
+      target.on(
+        RADAR_SOCKET_EVENTS
+          .RED_CARD_PRESSURE,
+        onSignal
+      );
+
+      target.on(
+        RADAR_SOCKET_EVENTS
+          .RED_CARD_DETECTED,
+        onRedCardDetected
+      );
+
+      target.on(
+        RADAR_SOCKET_EVENTS
+          .WATCHLIST_ALERT,
+        onWatchlistAlert
+      );
+    };
+
+  const connect =
     async () => {
-      try {
-        const token =
-          await getAuthToken();
 
-        if (cancelled) {
+      const currentGeneration =
+        ++generation;
+
+      try {
+        const [
+          radarSocket,
+          token,
+        ] =
+          await Promise.all([
+            ensureRadarSocket(),
+            getAuthToken(),
+          ]);
+
+        if (
+          cancelled ||
+          currentGeneration !==
+            generation
+        ) {
           return;
         }
 
@@ -298,101 +373,128 @@ export function connectRadarSocket(
         }
 
         /*
-         * IMPORTANTE:
-         *
-         * Nunca mandamos userId desde
-         * el móvil.
-         *
-         * Solo mandamos JWT.
-         *
-         * El backend obtiene el userId
-         * verificando el token.
+         * Evita listeners duplicados.
          */
+        if (
+          activeSocket
+        ) {
+          detach(
+            activeSocket
+          );
+        }
+
+        activeSocket =
+          radarSocket;
+
+        attach(
+          radarSocket
+        );
+
         radarSocket.auth = {
           token,
         };
 
         if (
-          !radarSocket.connected
+          !radarSocket
+            .connected
         ) {
-          radarSocket.connect();
+          radarSocket
+            .connect();
         }
+
       } catch (
         error
       ) {
+
         if (cancelled) {
           return;
         }
 
         handlers
           .onError?.(
-            error instanceof Error
+            error instanceof
+              Error
               ? error.message
-              : "No se pudo autenticar el Socket"
+              : "No se pudo conectar el Socket"
           );
       }
-    }
-  )();
+    };
 
   /*
    * ========================================
-   * CLEANUP
+   * CAMBIO DE SERVIDOR EN RUNTIME
    * ========================================
+   *
+   * Usuario:
+   *
+   * Cloudflare viejo
+   *        ↓
+   * pega nuevo Cloudflare
+   *        ↓
+   * Guardar
+   *
+   * ServerConfigService emite cambio.
+   *
+   * Socket:
+   * disconnect viejo
+   *        ↓
+   * obtiene nueva URL
+   *        ↓
+   * reconecta
    */
+  const unsubscribeServerConfig =
+    serverConfigService
+      .subscribe(
+        () => {
+
+          generation +=
+            1;
+
+          if (
+            activeSocket
+          ) {
+            detach(
+              activeSocket
+            );
+
+            activeSocket
+              .disconnect();
+
+            activeSocket.auth =
+              {};
+
+            activeSocket =
+              null;
+          }
+
+          void connect();
+        }
+      );
+
+  void connect();
 
   return () => {
 
     cancelled =
       true;
 
-    radarSocket.off(
-      "connect",
-      onConnect
-    );
+    generation +=
+      1;
 
-    radarSocket.off(
-      "disconnect",
-      onDisconnect
-    );
+    unsubscribeServerConfig();
 
-    radarSocket.off(
-      "connect_error",
-      onError
-    );
+    if (
+      activeSocket
+    ) {
+      detach(
+        activeSocket
+      );
 
-    radarSocket.off(
-      RADAR_SOCKET_EVENTS
-        .RED_CARD_PRESSURE,
-
-      onSignal
-    );
-
-    radarSocket.off(
-      RADAR_SOCKET_EVENTS
-        .RED_CARD_DETECTED,
-
-      onRedCardDetected
-    );
-
-    radarSocket.off(
-      RADAR_SOCKET_EVENTS
-        .WATCHLIST_ALERT,
-
-      onWatchlistAlert
-    );
+      activeSocket =
+        null;
+    }
   };
 }
-
-/*
- * ========================================
- * EXPLICIT DISCONNECT
- * ========================================
- *
- * Lo utilizaremos al cerrar sesión.
- *
- * De esa forma un usuario que hace logout
- * no deja un socket autenticado abierto.
- */
 
 export function disconnectRadarSocket():
   void {
@@ -403,9 +505,6 @@ export function disconnectRadarSocket():
 
   socket.disconnect();
 
-  /*
-   * Eliminamos también el token que
-   * Socket.IO conservaba en memoria.
-   */
-  socket.auth = {};
+  socket.auth =
+    {};
 }

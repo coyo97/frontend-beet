@@ -1,6 +1,8 @@
 import {
-  env,
-} from "@/config/env";
+  get,
+  put,
+  type ApiRequestOptions,
+} from "@/async/api";
 
 import {
   getTeamMemoryOwnerId,
@@ -12,68 +14,22 @@ import type {
 } from "../types/teamPersonalProfile";
 
 const BASE =
-  `${env.API_BASE_URL}/team-profiles`;
+  "/team-profiles";
 
-async function getHeaders(
-  json =
-    false
-): Promise<
-  Record<
-    string,
-    string
-  >
-> {
+async function ownerOptions():
+  Promise<
+    ApiRequestOptions
+  > {
 
   const ownerId =
     await getTeamMemoryOwnerId();
 
   return {
-    Accept:
-      "application/json",
-
-    "x-football-radar-owner-id":
-      ownerId,
-
-    ...(json
-      ? {
-          "Content-Type":
-            "application/json",
-        }
-      : {}),
+    headers: {
+      "x-football-radar-owner-id":
+        ownerId,
+    },
   };
-}
-
-async function getError(
-  response:
-    Response,
-
-  fallback:
-    string
-): Promise<string> {
-
-  try {
-    const body =
-      await response
-        .clone()
-        .json() as {
-          message?:
-            unknown;
-        };
-
-    if (
-      typeof body.message ===
-        "string" &&
-      body.message.trim()
-    ) {
-      return body
-        .message
-        .trim();
-    }
-  } catch {
-    // Sin JSON.
-  }
-
-  return `${fallback}: ${response.status}`;
 }
 
 export async function fetchTeamPersonalProfile(
@@ -84,40 +40,19 @@ export async function fetchTeamPersonalProfile(
   null
 > {
 
-  const headers =
-    await getHeaders();
-
-  const response =
-    await fetch(
-      `${BASE}/by-team?team=${encodeURIComponent(
-        teamName
-      )}`,
-      {
-        method:
-          "GET",
-
-        headers,
-      }
-    );
-
-  if (
-    !response.ok
-  ) {
-    throw new Error(
-      await getError(
-        response,
-        "Could not load team profile"
-      )
-    );
-  }
-
   const body =
-    await response
-      .json() as {
-        profile:
-          TeamPersonalProfile |
-          null;
-      };
+    await get<{
+      profile:
+        TeamPersonalProfile |
+        null;
+    }>(
+      `${BASE}/by-team`,
+      {
+        team:
+          teamName,
+      },
+      await ownerOptions()
+    );
 
   return body.profile;
 }
@@ -127,37 +62,15 @@ export async function fetchTeamPersonalProfiles():
     TeamPersonalProfile[]
   > {
 
-  const headers =
-    await getHeaders();
-
-  const response =
-    await fetch(
-      BASE,
-      {
-        method:
-          "GET",
-
-        headers,
-      }
-    );
-
-  if (
-    !response.ok
-  ) {
-    throw new Error(
-      await getError(
-        response,
-        "Could not load team profiles"
-      )
-    );
-  }
-
   const body =
-    await response
-      .json() as {
-        items:
-          TeamPersonalProfile[];
-      };
+    await get<{
+      items:
+        TeamPersonalProfile[];
+    }>(
+      BASE,
+      {},
+      await ownerOptions()
+    );
 
   return body.items;
 }
@@ -170,45 +83,16 @@ export async function saveTeamPersonalProfile(
   null
 > {
 
-  const headers =
-    await getHeaders(
-      true
-    );
-
-  const response =
-    await fetch(
-      BASE,
-      {
-        method:
-          "PUT",
-
-        headers,
-
-        body:
-          JSON.stringify(
-            input
-          ),
-      }
-    );
-
-  if (
-    !response.ok
-  ) {
-    throw new Error(
-      await getError(
-        response,
-        "Could not save team profile"
-      )
-    );
-  }
-
   const body =
-    await response
-      .json() as {
-        profile:
-          TeamPersonalProfile |
-          null;
-      };
+    await put<{
+      profile:
+        TeamPersonalProfile |
+        null;
+    }>(
+      BASE,
+      input,
+      await ownerOptions()
+    );
 
   return body.profile;
 }
