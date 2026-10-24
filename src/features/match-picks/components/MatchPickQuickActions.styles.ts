@@ -4,18 +4,21 @@ import {
 
 export const styles =
   StyleSheet.create({
+
     container: {
-      flexDirection:
-        "row",
-
-      gap:
-        6,
-
       marginTop:
         7,
 
       marginBottom:
         4,
+    },
+
+    actions: {
+      flexDirection:
+        "row",
+
+      gap:
+        6,
     },
 
     button: {

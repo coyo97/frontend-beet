@@ -176,23 +176,23 @@ const activePick =
     match.away.goals ??
     "-";
 
-  return (
-	<View
-  style={[
-    styles.card,
+ return (
+  <View
+    style={[
+      styles.card,
 
-    isReviewed &&
-      styles.cardReviewed,
+      isReviewed &&
+        styles.cardReviewed,
 
-    Boolean(
-      activePick
-    ) &&
-      styles.cardBetPending,
-  ]}
->          {/*
-       * =========================
-       * MATCH HEADER
-       * =========================
+      Boolean(
+        activePick
+      ) &&
+        styles.cardBetPending,
+    ]}
+  >
+    {/*
+     * =========================
+     * MATCH HEADER       * =========================
        */}
       <TouchableOpacity
         activeOpacity={
@@ -287,51 +287,34 @@ const activePick =
        * Sin volver a repetir
        * los nombres de los equipos.
        */}
-      <MatchPickQuickActions
-  match={
-    match
-  }
-/>
-<LiveTeamMemoryInsight
-  match={
-    match
-  }
-  autoLoad={
-    contextVisible
-  }
-/>
+           <MatchPickQuickActions
+        match={
+          match
+        }
+      />
 
-		  <LiveOpponentMemoryInsight
-  match={
-    match
-  }
-  autoLoad={
-    contextVisible
-  }
-/>
+      <LiveTeamMemoryInsight
+        match={
+          match
+        }
+        autoLoad={
+          contextVisible
+        }
+      />
 
-<MatchTeamMemory
-  match={
-    match
-  }
-  autoLoad={
-    contextVisible
-  }
-/>
+      <LiveOpponentMemoryInsight
+        match={
+          match
+        }
+        autoLoad={
+          contextVisible
+        }
+      />
 
       {/*
        * =========================
        * PERSONAL HISTORY
        * =========================
-       *
-       * Solo:
-       *
-       * TU HISTORIAL ▼
-       *
-       * Al abrirlo se muestran
-       * detalles históricos/perfil,
-       * pero no repetimos las
-       * acciones Ganó / Perdió.
        */}
       <MatchTeamMemory
         match={
@@ -404,13 +387,16 @@ const activePick =
        */}
       {source && (
         <RadarReviewControls
-          provider={
-            source.provider
-          }
-          externalId={
-            source.externalId
-          }
-        />
+  provider={
+    source.provider
+  }
+  externalId={
+    source.externalId
+  }
+  match={
+    match
+  }
+/>
       )}
     </View>
   );

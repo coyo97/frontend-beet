@@ -359,11 +359,14 @@ export default function RedCardMatchCard({
        * Por eso NO duplicamos nada aquí.
        */}
 
-      <RedCardContextSection
-        match={
-          match
-        }
-      />
+     <RedCardContextSection
+  match={
+    match
+  }
+  redCards={
+    item.redCards
+  }
+/>
     </View>
   );
 }

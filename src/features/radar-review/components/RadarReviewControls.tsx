@@ -4,6 +4,14 @@ import {
   View,
 } from "react-native";
 
+import type {
+  LiveMatch,
+} from "@/types/radar";
+
+import {
+  useWatchlistStore,
+} from "@/store/watchlistStore";
+
 import {
   AppActionChip,
 } from "@/shared/ui/atoms/AppActionChip";
@@ -32,6 +40,14 @@ interface Props {
 
   externalId:
     string;
+
+  /*
+   * Opcional para no romper otros
+   * lugares donde todavía se use
+   * RadarReviewControls sin match.
+   */
+  match?:
+    LiveMatch;
 }
 
 function badge(
@@ -48,6 +64,7 @@ function badge(
   switch (
     status
   ) {
+
     case "marked":
       return {
         label:
@@ -89,6 +106,7 @@ function badge(
 export function RadarReviewControls({
   provider,
   externalId,
+  match,
 }: Props) {
 
   const key =
@@ -99,9 +117,7 @@ export function RadarReviewControls({
 
   const item =
     useRadarReviewStore(
-      (
-        state
-      ) =>
+      state =>
         state.items[
           key
         ]
@@ -109,9 +125,7 @@ export function RadarReviewControls({
 
   const mutating =
     useRadarReviewStore(
-      (
-        state
-      ) =>
+      state =>
         Boolean(
           state
             .mutatingKeys[
@@ -122,18 +136,35 @@ export function RadarReviewControls({
 
   const setStatus =
     useRadarReviewStore(
-      (
-        state
-      ) =>
+      state =>
         state.setStatus
     );
 
   const reset =
     useRadarReviewStore(
-      (
-        state
-      ) =>
+      state =>
         state.reset
+    );
+
+  /*
+   * WATCHLIST
+   */
+  const followMatch =
+    useWatchlistStore(
+      state =>
+        state.followMatch
+    );
+
+  const findMatch =
+    useWatchlistStore(
+      state =>
+        state.findMatch
+    );
+
+  const watchlistMutating =
+    useWatchlistStore(
+      state =>
+        state.mutating
     );
 
   const status:
@@ -145,6 +176,68 @@ export function RadarReviewControls({
     badge(
       status
     );
+
+  /*
+   * ===================================
+   * REVIEWED -> WATCHLIST
+   * ===================================
+   */
+  const markReviewed =
+    async () => {
+
+      /*
+       * Primero guardamos el estado
+       * Revisada como hasta ahora.
+       */
+      await setStatus(
+        provider,
+        externalId,
+        "reviewed"
+      );
+
+      /*
+       * Si el componente recibió el match,
+       * aseguramos que esté en Watchlist.
+       */
+      if (!match) {
+        return;
+      }
+
+      const existing =
+        findMatch(
+          match
+        );
+
+      /*
+       * Evitamos repetir la petición
+       * dentro de la misma sesión.
+       */
+      if (existing) {
+        return;
+      }
+
+      try {
+
+        await followMatch(
+          match
+        );
+
+      } catch (
+        error
+      ) {
+
+        /*
+         * No revertimos "Revisada".
+         *
+         * Si falla Watchlist, volver a
+         * tocar Revisada reintentará.
+         */
+        console.warn(
+          "[RadarReviewControls] Could not add reviewed match to watchlist",
+          error
+        );
+      }
+    };
 
   return (
     <View
@@ -177,10 +270,12 @@ export function RadarReviewControls({
           }
           onPress={
             () => {
+
               if (
                 status ===
                 "marked"
               ) {
+
                 void reset(
                   provider,
                   externalId
@@ -204,16 +299,16 @@ export function RadarReviewControls({
             status ===
             "reviewed"
           }
+          loading={
+            watchlistMutating
+          }
           disabled={
-            mutating
+            mutating ||
+            watchlistMutating
           }
           onPress={
             () => {
-              void setStatus(
-                provider,
-                externalId,
-                "reviewed"
-              );
+              void markReviewed();
             }
           }
         />
@@ -225,10 +320,12 @@ export function RadarReviewControls({
             "dismissed"
           }
           disabled={
-            mutating
+            mutating ||
+            watchlistMutating
           }
           onPress={
             () => {
+
               void setStatus(
                 provider,
                 externalId,

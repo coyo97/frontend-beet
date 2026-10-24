@@ -7,6 +7,10 @@ import {
   fetchRecentMatches,
 } from "@/features/recent-matches/api/recentMatchesService";
 
+import {
+  buildMatchPickMemoryNote,
+} from "../utils/buildMatchPickMemoryNote";
+
 import type {
   RecentMatch,
 } from "@/features/recent-matches/types/recentMatch";
@@ -343,33 +347,37 @@ export function useAutoResolveMatchPicks(
                   pick
                 )
               ) {
-                await useTeamMemoryStore
-                  .getState()
-                  .record({
-                    teamName:
-                      pick.teamName,
+               const note =
+  buildMatchPickMemoryNote(
+    pick
+  );
 
-                    opponentName:
-                      pick.opponentName,
+await useTeamMemoryStore
+  .getState()
+  .record({
+    teamName:
+      pick.teamName,
 
-                    outcome,
+    opponentName:
+      pick.opponentName,
 
-                    competitionName:
-                      pick
-                        .competitionName,
+    outcome,
 
-                    kickoffAt:
-                      pick.kickoffAt,
+    competitionName:
+      pick
+        .competitionName,
 
-                    provider:
-                      pick.provider,
+    kickoffAt:
+      pick.kickoffAt,
 
-                    externalId:
-                      pick.externalId,
+    provider:
+      pick.provider,
 
-                    note:
-                      null,
-                  });
+    externalId:
+      pick.externalId,
+
+    note,
+  });
               }
 
               /*

@@ -12,6 +12,14 @@ import {
   MatchContextSummary,
 } from "@/features/match-context/components/MatchContextSummary";
 
+import type {
+  MatchPickRedCardSnapshot,
+} from "@/features/match-picks/types/matchPick";
+
+import {
+  MatchPickQuickActions,
+} from "@/features/match-picks/components/MatchPickQuickActions";
+
 import {
   MatchCopyActions,
 } from "@/features/match-context/components/MatchCopyActions";
@@ -35,10 +43,14 @@ import {
 interface Props {
   match:
     LiveMatch;
+
+  redCards:
+    MatchPickRedCardSnapshot;
 }
 
 export function RedCardContextSection({
   match,
+  redCards,
 }: Props) {
 
   const source =
@@ -52,6 +64,14 @@ export function RedCardContextSection({
         styles.container
       }
     >
+		      <MatchPickQuickActions
+        match={
+          match
+        }
+        redCards={
+          redCards
+        }
+      />
       <MatchContextSummary
         match={
           match
@@ -77,13 +97,16 @@ export function RedCardContextSection({
 
       {source && (
         <RadarReviewControls
-          provider={
-            source.provider
-          }
-          externalId={
-            source.externalId
-          }
-        />
+  provider={
+    source.provider
+  }
+  externalId={
+    source.externalId
+  }
+  match={
+    match
+  }
+/>
       )}
     </View>
   );

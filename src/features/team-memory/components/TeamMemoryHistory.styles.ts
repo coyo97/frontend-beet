@@ -4,6 +4,7 @@ import {
 
 export const styles =
   StyleSheet.create({
+
     container: {
       marginTop:
         8,
@@ -100,6 +101,60 @@ export const styles =
         2,
     },
 
+    noteBox: {
+      marginTop:
+        7,
+
+      padding:
+        8,
+
+      borderWidth:
+        1,
+
+      borderColor:
+        "#4A372D",
+
+      borderRadius:
+        8,
+
+      backgroundColor:
+        "#1D1816",
+
+      gap:
+        3,
+    },
+
+    noteTitle: {
+      color:
+        "#D6A36D",
+
+      fontSize:
+        8,
+
+      fontWeight:
+        "900",
+
+      letterSpacing:
+        0.4,
+
+      marginBottom:
+        2,
+    },
+
+    noteLine: {
+      color:
+        "#C9B7A5",
+
+      fontSize:
+        9,
+
+      lineHeight:
+        13,
+
+      fontWeight:
+        "600",
+    },
+
     date: {
       color:
         "#68717D",
@@ -108,7 +163,7 @@ export const styles =
         8,
 
       marginTop:
-        4,
+        6,
     },
 
     registered: {

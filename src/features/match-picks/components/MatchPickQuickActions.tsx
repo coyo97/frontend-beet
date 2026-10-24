@@ -10,6 +10,18 @@ import type {
   LiveMatch,
 } from "@/types/radar";
 
+import type {
+  MatchPickRedCardSnapshot,
+} from "../types/matchPick";
+
+import {
+  buildMatchPickContext,
+} from "../utils/buildMatchPickContext";
+
+import {
+  MatchLineupVerification,
+} from "@/features/team-lineup/components/MatchLineupVerification";
+
 import {
   getPreferredMatchSource,
 } from "@/ui/features/radar/utils/matchSource";
@@ -29,10 +41,15 @@ import {
 interface Props {
   match:
     LiveMatch;
+
+    redCards?:
+    MatchPickRedCardSnapshot |
+    null;
 }
 
 export function MatchPickQuickActions({
   match,
+  redCards = null,
 }: Props) {
 
   const key =
@@ -109,6 +126,12 @@ export function MatchPickQuickActions({
           source?.externalId ??
           null,
 
+		context:
+  buildMatchPickContext({
+    match,
+    side,
+    redCards,
+  }),
         createdAt:
           new Date()
             .toISOString(),
@@ -121,79 +144,96 @@ export function MatchPickQuickActions({
         styles.container
       }
     >
-      <TouchableOpacity
-        activeOpacity={
-          0.8
+      <View
+        style={
+          styles.actions
         }
-        onPress={
-          () =>
-            choose(
-              "home"
-            )
-        }
-        style={[
-          styles.button,
-
-          selected?.side ===
-            "home" &&
-            styles.selected,
-        ]}
       >
-        <Text
-          numberOfLines={
-            1
+        <TouchableOpacity
+          activeOpacity={
+            0.8
+          }
+          onPress={
+            () =>
+              choose(
+                "home"
+              )
           }
           style={[
-            styles.text,
+            styles.button,
 
             selected?.side ===
               "home" &&
-              styles.selectedText,
+              styles.selected,
           ]}
         >
-          {selected?.side ===
-          "home"
-            ? `🎯 Aposté: ${match.home.name}`
-            : `${match.home.name} ganará`}
-        </Text>
-      </TouchableOpacity>
+          <Text
+            numberOfLines={
+              1
+            }
+            style={[
+              styles.text,
 
-      <TouchableOpacity
-        activeOpacity={
-          0.8
-        }
-        onPress={
-          () =>
-            choose(
-              "away"
-            )
-        }
-        style={[
-          styles.button,
+              selected?.side ===
+                "home" &&
+                styles.selectedText,
+            ]}
+          >
+            {selected?.side ===
+            "home"
+              ? `🎯 Aposté: ${match.home.name}`
+              : `${match.home.name} ganará`}
+          </Text>
+        </TouchableOpacity>
 
-          selected?.side ===
-            "away" &&
-            styles.selected,
-        ]}
-      >
-        <Text
-          numberOfLines={
-            1
+        <TouchableOpacity
+          activeOpacity={
+            0.8
+          }
+          onPress={
+            () =>
+              choose(
+                "away"
+              )
           }
           style={[
-            styles.text,
+            styles.button,
 
             selected?.side ===
               "away" &&
-              styles.selectedText,
+              styles.selected,
           ]}
         >
-          {selected?.side ===
-          "away"
-            ? `🎯 Aposté: ${match.away.name}`
-            : `${match.away.name} ganará`}
-        </Text>
-      </TouchableOpacity>
+          <Text
+            numberOfLines={
+              1
+            }
+            style={[
+              styles.text,
+
+              selected?.side ===
+                "away" &&
+                styles.selectedText,
+            ]}
+          >
+            {selected?.side ===
+            "away"
+              ? `🎯 Aposté: ${match.away.name}`
+              : `${match.away.name} ganará`}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {selected && (
+        <MatchLineupVerification
+          match={
+            match
+          }
+          selectedSide={
+            selected.side
+          }
+        />
+      )}
     </View>
   );
 }

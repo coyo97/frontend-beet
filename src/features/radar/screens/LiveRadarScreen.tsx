@@ -17,6 +17,10 @@ import {
 } from "react-native";
 
 import {
+  useLateGoalStore,
+} from "@/features/late-goals/store/lateGoalStore";
+
+import {
   RedCardsTab,
 } from "@/features/radar/components/red-cards/RedCardsTab";
 
@@ -255,6 +259,12 @@ const [
     refresh,
   } =
     useRadarStore();
+
+  const ensureLateGoalTeams =
+  useLateGoalStore(
+    state =>
+      state.ensureTeams
+  );
 
     useAutoResolveMatchPicks(
   liveMatches
@@ -778,45 +788,81 @@ const selectLiveLeague =
         150,
     }).current;
 
-  const onViewableLiveItemsChanged =
-    useRef(
-      (
-        {
-          viewableItems,
-        }: {
-          viewableItems:
-            Array<
-              ViewToken<LiveMatch>
-            >;
+const onViewableLiveItemsChanged =
+  useRef(
+    (
+      {
+        viewableItems,
+      }: {
+        viewableItems:
+          Array<
+            ViewToken<LiveMatch>
+          >;
+      }
+    ) => {
+
+      const keys =
+        new Set<
+          string
+        >();
+
+      const teamNames:
+        string[] =
+        [];
+
+      for (
+        const token
+        of viewableItems
+      ) {
+
+        const match =
+          token.item;
+
+        if (!match) {
+          continue;
         }
-      ) => {
 
-        const keys =
-          new Set<
-            string
-          >();
+        keys.add(
+          liveMatchKey(
+            match
+          )
+        );
 
-        for (
-          const token
-          of viewableItems
-        ) {
-
-          if (!token.item) {
-            continue;
-          }
-
-          keys.add(
-            liveMatchKey(
-              token.item
-            )
-          );
-        }
-
-        setVisibleLiveKeys(
-          keys
+        /*
+         * Los mismos partidos que se
+         * vuelven visibles cargan sus
+         * perfiles históricos 80+/90+.
+         *
+         * No cargamos los cientos de
+         * equipos de toda la lista.
+         */
+        teamNames.push(
+          match.home.name,
+          match.away.name
         );
       }
-    ).current;
+
+      setVisibleLiveKeys(
+        keys
+      );
+
+      /*
+       * ensureTeams:
+       *
+       * - deduplica nombres
+       * - ignora perfiles ya cacheados
+       * - hace UNA petición batch
+       */
+      if (
+        teamNames.length >
+        0
+      ) {
+        void ensureLateGoalTeams(
+          teamNames
+        );
+      }
+    }
+  ).current;
 
   /*
    * ========================================

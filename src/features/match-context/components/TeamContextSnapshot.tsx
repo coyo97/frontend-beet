@@ -14,6 +14,15 @@ import {
 } from "@/shared/ui/atoms/StatMetric";
 
 import {
+  lateGoalTeamKey,
+  useLateGoalStore,
+} from "@/features/late-goals/store/lateGoalStore";
+
+import {
+  LateGoalTeamStrip,
+} from "@/features/late-goals/components/LateGoalTeamStrip";
+
+import {
   FormStrip,
 } from "@/shared/ui/molecules/FormStrip";
 
@@ -72,6 +81,16 @@ export function TeamContextSnapshot({
   team,
   expanded,
 }: Props) {
+
+const lateGoalProfile =
+  useLateGoalStore(
+    state =>
+      state.profiles[
+        lateGoalTeamKey(
+          team.name
+        )
+      ]
+  );
 
   return (
     <View
@@ -172,6 +191,12 @@ export function TeamContextSnapshot({
           }
         />
       </View>
+
+		<LateGoalTeamStrip
+  profile={
+    lateGoalProfile
+  }
+/>
 
       {expanded &&
         team.recentMatches.length >

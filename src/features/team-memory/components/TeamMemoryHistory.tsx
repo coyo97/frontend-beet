@@ -128,13 +128,25 @@ export function TeamMemoryHistory({
       }
     >
       {items.map(
-        (
-          item
-        ) => {
+        item => {
 
           const positive =
             item.outcome ===
             "win";
+
+          const noteLines =
+            item.note
+              ?.split(
+                /\r?\n/
+              )
+              .map(
+                line =>
+                  line.trim()
+              )
+              .filter(
+                Boolean
+              ) ??
+            [];
 
           return (
             <View
@@ -228,6 +240,41 @@ export function TeamMemoryHistory({
                 >
                   {item.competitionName}
                 </Text>
+              )}
+
+              {noteLines.length >
+                0 && (
+                <View
+                  style={
+                    styles.noteBox
+                  }
+                >
+                  <Text
+                    style={
+                      styles.noteTitle
+                    }
+                  >
+                    CONTEXTO DE LA APUESTA
+                  </Text>
+
+                  {noteLines.map(
+                    (
+                      line,
+                      index
+                    ) => (
+                      <Text
+                        key={
+                          `${item.id}-note-${index}`
+                        }
+                        style={
+                          styles.noteLine
+                        }
+                      >
+                        {line}
+                      </Text>
+                    )
+                  )}
+                </View>
               )}
 
               <Text

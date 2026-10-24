@@ -13,7 +13,12 @@ import {
 import type {
   MatchOpportunity,
   TeamOpportunitySnapshot,
+  TeamLateGoalProfile
 } from "../types/opportunity";
+
+import {
+  LateGoalTeamStrip,
+} from "./LateGoalTeamStrip";
 
 import {
   RecentFormBadges,
@@ -52,12 +57,16 @@ const PROFILE_LABELS = {
 function TeamBlock({
   team,
   favored,
+  lateGoalProfile,
 }: {
   team:
     TeamOpportunitySnapshot;
 
   favored:
     boolean;
+
+  lateGoalProfile?:
+    TeamLateGoalProfile;
 }) {
 
   return (
@@ -189,7 +198,13 @@ function TeamBlock({
             team.form
           }
         />
+		  <LateGoalTeamStrip
+  profile={
+    lateGoalProfile
+  }
+/>
       </View>
+
 
       {team.dangerLevel !==
         "low" && (
@@ -351,13 +366,18 @@ export function OpportunityCard({
     </View>
 
     <TeamBlock
-      team={
-        opportunity.home
-      }
-      favored={
-        homeFavored
-      }
-    />
+  team={
+    opportunity.home
+  }
+  favored={
+    homeFavored
+  }
+  lateGoalProfile={
+    opportunity
+      .lateGoalAnalysis
+      ?.home
+  }
+/>
 
     <View
       style={
@@ -374,13 +394,18 @@ export function OpportunityCard({
     </View>
 
     <TeamBlock
-      team={
-        opportunity.away
-      }
-      favored={
-        awayFavored
-      }
-    />
+  team={
+    opportunity.away
+  }
+  favored={
+    awayFavored
+  }
+  lateGoalProfile={
+    opportunity
+      .lateGoalAnalysis
+      ?.away
+  }
+/>
 
     {/*
      * ========================================
