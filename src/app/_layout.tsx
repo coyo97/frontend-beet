@@ -1,6 +1,5 @@
-import React, {
-  useEffect,
-} from "react";
+
+import React from "react";
 
 import {
   DarkTheme,
@@ -12,10 +11,6 @@ import {
 import {
   useColorScheme,
 } from "react-native";
-
-import {
-  configureNotifications,
-} from "../notifications/notificationService";
 
 import {
   AuthBootstrap,
@@ -31,13 +26,6 @@ export default function RootLayout() {
 
   useNotificationNavigation();
 
-  useEffect(
-    () => {
-      void configureNotifications();
-    },
-    []
-  );
-
   return (
     <ThemeProvider
       value={
@@ -51,7 +39,9 @@ export default function RootLayout() {
           headerShown: false,
         }}
       />
-		<AuthBootstrap />
+
+      <AuthBootstrap />
     </ThemeProvider>
   );
 }
+

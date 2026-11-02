@@ -12,6 +12,23 @@ import {
   View,
 } from "react-native";
 
+
+import {
+  useState,
+} from "react";
+
+import {
+  PushTestSettings,
+} from "../components/PushTestSettings";
+
+import {
+  PushDeviceRegistration,
+} from "../components/PushDeviceRegistration";
+
+import {
+  TeamMemoryVolumeSettings,
+} from "../components/TeamMemoryVolumeSettings";
+
 import {
   router,
 } from "expo-router";
@@ -19,6 +36,14 @@ import {
 import {
   useNotificationSettingsStore,
 } from "../../../../store/notificationSettingsStore";
+
+import {
+  TeamMemoryPushSettings,
+} from "../components/TeamMemoryPushSettings";
+
+import {
+  UpcomingPushSettings,
+} from "../components/UpcomingPushSettings";
 
 import type {
   PushMinimumStrength,
@@ -95,6 +120,9 @@ function ToggleRow({
 }
 
 export default function NotificationSettingsScreen() {
+
+	const [pushRefreshKey, setPushRefreshKey] =
+  useState(0);
 
   const preferences =
     useNotificationSettingsStore(
@@ -220,6 +248,7 @@ export default function NotificationSettingsScreen() {
     );
   }
 
+
   return (
     <ScrollView
       style={
@@ -306,6 +335,11 @@ export default function NotificationSettingsScreen() {
 
       {preferences && (
         <>
+          {/*
+           * =================================
+           * NOTIFICACIONES PUSH GENERALES
+           * =================================
+           */}
           <View
             style={
               styles.section
@@ -341,6 +375,41 @@ export default function NotificationSettingsScreen() {
             />
           </View>
 
+          {/*
+           * =================================
+           * NUEVO:
+           * AVISOS DE PRÓXIMOS PARTIDOS
+           * =================================
+           *
+           * - Consentimiento por dispositivo.
+           * - Alertas anticipadas 24h.
+           * - Recordatorios 60m.
+           * - Prioridad alta.
+           *
+           * El backend continúa en
+           * modo preview.
+           */}
+          <PushDeviceRegistration
+  onRegistered={() => {
+    setPushRefreshKey(value => value + 1);
+  }}
+/>
+
+<UpcomingPushSettings
+  refreshKey={pushRefreshKey}
+/>
+
+<TeamMemoryPushSettings
+  refreshKey={pushRefreshKey}
+/>
+			<PushTestSettings />
+			<TeamMemoryVolumeSettings />
+
+          {/*
+           * =================================
+           * INTENSIDAD MÍNIMA
+           * =================================
+           */}
           <View
             style={[
               styles.section,
@@ -473,6 +542,11 @@ export default function NotificationSettingsScreen() {
             </Text>
           </View>
 
+          {/*
+           * =================================
+           * MI WATCHLIST
+           * =================================
+           */}
           <View
             style={[
               styles.section,
@@ -619,6 +693,12 @@ export default function NotificationSettingsScreen() {
             />
           </View>
 
+          {/*
+           * =================================
+           * INFORMACIÓN:
+           * RED CARD PRESSURE
+           * =================================
+           */}
           <View
             style={
               styles.infoBox
@@ -641,6 +721,11 @@ export default function NotificationSettingsScreen() {
             </Text>
           </View>
 
+          {/*
+           * =================================
+           * ÚLTIMA ACTUALIZACIÓN
+           * =================================
+           */}
           <Text
             style={
               styles.updated
@@ -656,6 +741,7 @@ export default function NotificationSettingsScreen() {
       )}
     </ScrollView>
   );
+
 }
 
 const styles =

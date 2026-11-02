@@ -1,3 +1,5 @@
+
 export {
   default,
-} from "../../../ui/features/radar/screens/MatchDetailScreen";
+} from "@/features/notifications/screens/NotificationMatchRoute";
+

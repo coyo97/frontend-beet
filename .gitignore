@@ -43,3 +43,13 @@ example
 /android
 
 firebase-fcm-service-account.json
+
+
+# Credenciales privadas de firma Android
+/credentials.json
+/credentials/
+*.jks
+*.keystore
+
+# APK generada localmente
+/FootballRadar.apk

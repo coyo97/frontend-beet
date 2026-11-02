@@ -1,3 +1,4 @@
+
 import {
   del,
   get,
@@ -9,6 +10,10 @@ import {
   watchlistRoutes,
 } from "../routes/watchlistRoutes";
 
+import {
+  getAuthToken,
+} from "../../features/auth/storage/authToken";
+
 import type {
   LiveMatch,
   MatchSource,
@@ -17,59 +22,70 @@ import type {
 import type {
   CreateWatchlistItemInput,
   WatchlistItem,
-} from "../../types/watchlist";
-
-import type {
   WatchlistRadarRule,
-} from "../../types/watchlist";
-
-import type {
   DeleteWatchlistResponse,
   WatchlistItemResponse,
   WatchlistResponse,
 } from "../../types/watchlist";
 
+/*
+ * Las rutas de Watchlist requieren JWT.
+ *
+ * El usuario propietario se obtiene
+ * en el backend, no desde el móvil.
+ */
+async function authenticatedOptions() {
+  const token =
+    await getAuthToken();
+
+  if (!token) {
+    throw new Error("NO_SESSION");
+  }
+
+  return {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  };
+}
+
 function preferredSource(
-  match:
-    LiveMatch
+  match: LiveMatch
 ): MatchSource | null {
 
   return (
     match.sources.find(
-      (
-        source
-      ) =>
-        source.provider ===
-        "flashscore"
+      source =>
+        source.provider === "flashscore"
     ) ??
     match.sources[0] ??
     null
   );
 }
 
+/*
+ * Obtener solamente la Watchlist
+ * del usuario autenticado.
+ */
 export async function getWatchlist():
-  Promise<
-    WatchlistResponse
-  > {
+  Promise<WatchlistResponse> {
 
-  return get<
-    WatchlistResponse
-  >(
-    watchlistRoutes.list
+  return get<WatchlistResponse>(
+    watchlistRoutes.list,
+    {},
+    await authenticatedOptions()
   );
 }
 
+/*
+ * Seguir un partido.
+ */
 export async function followMatch(
-  match:
-    LiveMatch
-): Promise<
-  WatchlistItemResponse
-> {
+  match: LiveMatch
+): Promise<WatchlistItemResponse> {
 
   const source =
-    preferredSource(
-      match
-    );
+    preferredSource(match);
 
   if (!source) {
     throw new Error(
@@ -77,13 +93,10 @@ export async function followMatch(
     );
   }
 
-  return post<
-    WatchlistItemResponse
-  >(
+  return post<WatchlistItemResponse>(
     watchlistRoutes.create,
     {
-      type:
-        "match",
+      type: "match",
 
       label:
         `${match.home.name} vs ${match.away.name}`,
@@ -96,14 +109,10 @@ export async function followMatch(
           source.externalId,
 
         country:
-          match
-            .competition
-            .country,
+          match.competition.country,
 
         competition:
-          match
-            .competition
-            .name,
+          match.competition.name,
 
         homeName:
           match.home.name,
@@ -114,78 +123,78 @@ export async function followMatch(
         kickoffAt:
           match.kickoffAt,
       },
-    }
+    },
+    await authenticatedOptions()
   );
 }
 
+/*
+ * Activar o desactivar
+ * una entrada de Watchlist.
+ */
 export async function setWatchlistEnabled(
   id: string,
   enabled: boolean
-): Promise<
-  WatchlistItemResponse
-> {
+): Promise<WatchlistItemResponse> {
 
-  return patch<
-    WatchlistItemResponse
-  >(
-    watchlistRoutes.enabled(
-      id
-    ),
+  return patch<WatchlistItemResponse>(
+    watchlistRoutes.enabled(id),
     {
       enabled,
-    }
+    },
+    await authenticatedOptions()
   );
 }
 
+/*
+ * Eliminar una entrada propia.
+ */
 export async function deleteWatchlistItem(
   id: string
-): Promise<
-  DeleteWatchlistResponse
-> {
+): Promise<DeleteWatchlistResponse> {
 
-  return del<
-    DeleteWatchlistResponse
-  >(
-    watchlistRoutes.remove(
-      id
-    )
+  return del<DeleteWatchlistResponse>(
+    watchlistRoutes.remove(id),
+    await authenticatedOptions()
   );
 }
 
+/*
+ * Crear entradas de los diferentes
+ * tipos utilizando la misma
+ * autenticación.
+ */
 async function createWatchlistItem(
-  input:
-    CreateWatchlistItemInput
+  input: CreateWatchlistItemInput
 ): Promise<WatchlistItem> {
 
   const response =
     await post<{
-      item:
-        WatchlistItem;
+      item: WatchlistItem;
     }>(
       watchlistRoutes.create,
-      input
+      input,
+      await authenticatedOptions()
     );
 
   return response.item;
 }
+
 export async function followTeam(
   name: string,
   country?: string | null
 ): Promise<WatchlistItem> {
 
   return createWatchlistItem({
-    type:
-      "team",
+    type: "team",
 
-    label:
-      name,
+    label: name,
 
     target: {
       name,
 
-country:
-  country ??
-  undefined,
+      country:
+        country ?? undefined,
     },
   });
 }
@@ -196,8 +205,7 @@ export async function followCompetition(
 ): Promise<WatchlistItem> {
 
   return createWatchlistItem({
-    type:
-      "competition",
+    type: "competition",
 
     label:
       country
@@ -207,12 +215,10 @@ export async function followCompetition(
     target: {
       name,
 
-      competition:
-        name,
+      competition: name,
 
-country:
-  country ??
-  undefined,
+      country:
+        country ?? undefined,
     },
   });
 }
@@ -222,15 +228,12 @@ export async function followCountry(
 ): Promise<WatchlistItem> {
 
   return createWatchlistItem({
-    type:
-      "country",
+    type: "country",
 
-    label:
-      country,
+    label: country,
 
     target: {
-      name:
-        country,
+      name: country,
 
       country,
     },
@@ -238,32 +241,26 @@ export async function followCountry(
 }
 
 export async function createRadarRule(
-  label:
-    string,
-
-  rule:
-    WatchlistRadarRule
+  label: string,
+  rule: WatchlistRadarRule
 ): Promise<WatchlistItem> {
 
   return createWatchlistItem({
-    type:
-      "radar-rule",
+    type: "radar-rule",
 
     label,
 
     target: {
-      name:
-        label,
+      name: label,
 
       country:
-        rule.country ??
-        undefined,
+        rule.country ?? undefined,
 
       competition:
-        rule.competition ??
-        undefined,
+        rule.competition ?? undefined,
     },
 
     rule,
   });
 }
+

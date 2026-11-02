@@ -1,6 +1,7 @@
 import React, {
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
@@ -16,6 +17,10 @@ import {
 import {
   MatchContextSummary,
 } from "@/features/match-context/components/MatchContextSummary";
+
+import {
+  useRecentMatchesStore,
+} from "@/features/recent-matches/store/recentMatchesStore";
 
 import {
   MatchContextUnavailable,
@@ -97,6 +102,8 @@ export default function MatchDetailScreen() {
 
       id:
         string;
+
+	  focus?: string;
     }>();
 
   const provider =
@@ -110,6 +117,70 @@ export default function MatchDetailScreen() {
       params.id ??
       ""
     );
+
+
+/*
+ * Abrimos directamente la seccion
+ * de expulsiones cuando el usuario
+ * llega desde una notificacion.
+ */
+const focusRedCard =
+  params.focus === "red-card";
+
+const scrollRef =
+  useRef<ScrollView>(null);
+
+const focusedRouteRef =
+  useRef<string | null>(null);
+
+const [
+  redCardSectionY,
+  setRedCardSectionY,
+] =
+  useState<number | null>(
+    null
+  );
+
+
+
+/*
+ * ==========================================
+ * RECUPERACION DESDE NOTIFICACIONES
+ * ==========================================
+ */
+
+const refreshLive =
+  useRadarStore(
+    state => state.refreshLive
+  );
+
+const refreshRedCards =
+  useRadarStore(
+    state => state.refreshRedCards
+  );
+
+const recentMatches =
+  useRecentMatchesStore(
+    state => state.items
+  );
+
+const refreshRecentMatches =
+  useRecentMatchesStore(
+    state => state.refresh
+  );
+
+const [lookupState, setLookupState] =
+  useState<{
+    key: string;
+    finished: boolean;
+  }>({
+    key: "",
+    finished: false,
+  });
+
+const routeKey =
+  `${provider}:${id}`;
+
 
   /*
    * ==========================================
@@ -288,11 +359,28 @@ export default function MatchDetailScreen() {
               )
           );
 
-        return (
-          stored?.signal
-            .match ??
-          null
-        );
+      
+if (stored) {
+  return stored.signal.match;
+}
+
+/*
+ * Ultimo recurso:
+ * partidos recientes guardados
+ * por el backend.
+ */
+const recent =
+  recentMatches.find(
+    item =>
+      matchesSource(
+        item.match,
+        provider,
+        id
+      )
+  );
+
+return recent?.match ?? null;
+
       },
       [
         id,
@@ -300,8 +388,137 @@ export default function MatchDetailScreen() {
         liveMatches,
         redCardMatches,
         recentSignals,
+		recentMatches,
       ]
     );
+
+
+/*
+ * ==========================================
+ * RESOLVER PARTIDO DESDE PUSH
+ * ==========================================
+ *
+ * Si el Radar local esta vacio:
+ *
+ * 1. Actualizar partidos en vivo.
+ * 2. Consultar partidos recientes.
+ * 3. Como ultimo recurso, actualizar
+ *    la lista de tarjetas rojas.
+ *
+ * Las consultas se hacen una sola vez
+ * por apertura y no por renderizado.
+ */
+
+useEffect(() => {
+  if (!provider || !id || match) {
+    return;
+  }
+
+  let cancelled = false;
+
+  setLookupState({
+    key: routeKey,
+    finished: false,
+  });
+
+  const resolveMatch = async () => {
+
+    /*
+     * La carga del historial y del
+     * radar puede hacerse en paralelo.
+     */
+    await Promise.allSettled([
+      refreshLive(),
+      refreshRecentMatches(),
+    ]);
+
+    if (cancelled) {
+      return;
+    }
+
+    const radar =
+      useRadarStore.getState();
+
+    const recent =
+      useRecentMatchesStore.getState();
+
+    const foundLive =
+      radar.liveMatches.some(
+        item =>
+          matchesSource(
+            item,
+            provider,
+            id
+          )
+      );
+
+    const foundRed =
+      radar.redCardMatches.some(
+        item =>
+          matchesSource(
+            item.match,
+            provider,
+            id
+          )
+      );
+
+    const foundRecent =
+      recent.items.some(
+        item =>
+          matchesSource(
+            item.match,
+            provider,
+            id
+          )
+      );
+
+    const foundSignal =
+      radar.recentSignals.some(
+        item =>
+          matchesSource(
+            item.signal.match,
+            provider,
+            id
+          )
+      );
+
+    /*
+     * No volvemos a escanear rojas
+     * si ya encontramos el partido.
+     */
+    if (
+      !foundLive &&
+      !foundRed &&
+      !foundRecent &&
+      !foundSignal
+    ) {
+      await Promise.allSettled([
+        refreshRedCards(),
+      ]);
+    }
+
+    if (!cancelled) {
+      setLookupState({
+        key: routeKey,
+        finished: true,
+      });
+    }
+  };
+
+  void resolveMatch();
+
+  return () => {
+    cancelled = true;
+  };
+
+}, [
+  routeKey,
+  Boolean(match),
+  refreshLive,
+  refreshRedCards,
+  refreshRecentMatches,
+]);
+
 
   /*
    * ==========================================
@@ -814,6 +1031,71 @@ export default function MatchDetailScreen() {
       ?.statistics[0] ??
     null;
 
+
+/*
+ * ==========================================
+ * AUTOFOCUS RED CARD
+ * ==========================================
+ */
+
+const redCardIncidentCount =
+  redCardData?.redCards.incidents.length ?? 0;
+
+useEffect(() => {
+
+  if (
+    !focusRedCard ||
+    !match ||
+    redCardSectionY === null ||
+    redCardIncidentCount === 0
+  ) {
+    return;
+  }
+
+  /*
+   * Evitamos volver a desplazar la
+   * pantalla cada vez que se
+   * actualizan marcador o estadisticas.
+   */
+  if (
+    focusedRouteRef.current ===
+    routeKey
+  ) {
+    return;
+  }
+
+  const frame =
+    requestAnimationFrame(
+      () => {
+
+        scrollRef.current?.scrollTo({
+          y: Math.max(
+            0,
+            redCardSectionY - 12
+          ),
+
+          animated: true,
+        });
+
+        focusedRouteRef.current =
+          routeKey;
+      }
+    );
+
+  return () => {
+    cancelAnimationFrame(frame);
+  };
+
+}, [
+  focusRedCard,
+  match,
+  routeKey,
+  redCardSectionY,
+  redCardIncidentCount,
+]);
+
+
+
   /*
    * ==========================================
    * MATCH NOT FOUND
@@ -827,13 +1109,27 @@ export default function MatchDetailScreen() {
           styles.center
         }
       >
-        <Text
-          style={
-            styles.error
-          }
-        >
-          El partido ya no está disponible en el radar local.
-        </Text>
+      
+{lookupState.key !== routeKey ||
+ !lookupState.finished ? (
+  <>
+    <ActivityIndicator
+      size="large"
+      color="#E75D68"
+    />
+
+    <Text style={styles.error}>
+      Buscando el partido en Football Radar...
+    </Text>
+  </>
+) : (
+  <Text style={styles.error}>
+    No pudimos recuperar este partido
+    del radar actual ni del historial
+    disponible.
+  </Text>
+)}
+
 
         <TouchableOpacity
           onPress={
@@ -861,6 +1157,7 @@ export default function MatchDetailScreen() {
 
   return (
     <ScrollView
+		ref={scrollRef}
       style={
         styles.screen
       }
@@ -1041,7 +1338,20 @@ export default function MatchDetailScreen() {
           .incidents
           .length >
           0 && (
-          <>
+
+<View
+  onLayout={event => {
+    setRedCardSectionY(
+      event.nativeEvent.layout.y
+    );
+  }}
+  style={
+    focusRedCard
+      ? styles.focusedRedCardSection
+      : undefined
+  }
+>
+
             <Text
               style={
                 styles.sectionTitle
@@ -1105,7 +1415,7 @@ export default function MatchDetailScreen() {
                   </View>
                 )
               )}
-          </>
+	</View>
         )}
 
       {/*
@@ -2003,4 +2313,17 @@ followHint: {
   marginBottom:
     13,
 },
+
+focusedRedCardSection: {
+  padding: 12,
+  marginTop: 8,
+  marginBottom: 12,
+
+  borderWidth: 1.5,
+  borderColor: "#E75D68",
+  borderRadius: 14,
+
+  backgroundColor: "#21191F",
+},
+
   });

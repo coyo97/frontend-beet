@@ -9,6 +9,13 @@ import {
   registerPushDevice,
 } from "../async/services/pushDeviceService";
 
+import * as SecureStore
+  from "expo-secure-store";
+
+import {
+  unregisterPushDevice,
+} from "../async/services/pushDeviceService";
+
 import type {
   WatchlistAlertEnvelope,
 } from "../types/watchlist";
@@ -25,15 +32,30 @@ import type {
 let remotePushRegistered =
   false;
 
+/*
+ * Token Expo del dispositivo.
+ * No es el JWT de autenticación.
+ */
+const PUSH_TOKEN_STORAGE_KEY =
+  "football_radar_expo_push_token";
+
+let lastExpoPushToken:
+  string | null = null;
+
+/*
+ * Permite esperar un registro
+ * que todavía esté ejecutándose.
+ */
+let registrationInFlight:
+  Promise<void> | null = null;
+
 let notificationHandlerConfigured =
   false;
 
-function isExpoGo():
-  boolean {
-
+function isExpoGo(): boolean {
   return (
-    Constants.expoGoConfig !==
-    null
+    Constants.executionEnvironment ===
+    "storeClient"
   );
 }
 
@@ -63,8 +85,14 @@ async function loadNotifications() {
   );
 }
 
-export async function configureNotifications():
+async function configureNotificationsInternal():
   Promise<void> {
+
+  /*
+   * Cada intento debe confirmar
+   * nuevamente el registro.
+   */
+  remotePushRegistered = false;
 
   const Notifications =
     await loadNotifications();
@@ -131,6 +159,55 @@ export async function configureNotifications():
       );
   }
 
+    /*
+   * ========================================
+   * ACCIONES INTERACTIVAS
+   * TARJETAS ROJAS
+   * ========================================
+   */
+  try {
+    await Notifications
+      .setNotificationCategoryAsync(
+        "radar_red_card",
+        [
+          {
+            identifier: "OPEN_MATCH",
+
+            buttonTitle: "Ver partido",
+
+            options: {
+              opensAppToForeground: true,
+            },
+          },
+          {
+            identifier: "COPY_MATCH",
+
+            buttonTitle: "Copiar partido",
+
+            options: {
+              opensAppToForeground: true,
+            },
+          },
+        ]
+      );
+
+    console.log(
+      "[Notifications] red-card actions registered"
+    );
+
+  } catch (error) {
+    console.warn(
+      "[Notifications] could not register actions",
+      error
+    );
+  }
+
+  /*
+   * ========================================
+   * PERMISOS DE NOTIFICACIONES
+   * ========================================
+   */
+
   const current =
     await Notifications
       .getPermissionsAsync();
@@ -195,13 +272,33 @@ export async function configureNotifications():
       return;
     }
 
-    await registerPushDevice({
-      expoPushToken:
-        result.data,
+/*
+ * Guardamos el token para
+ * poder desvincularlo incluso
+ * después de reiniciar la APK.
+ */
+lastExpoPushToken =
+  result.data;
 
-      platform:
-        Platform.OS,
-    });
+try {
+  await SecureStore.setItemAsync(
+    PUSH_TOKEN_STORAGE_KEY,
+    result.data
+  );
+} catch (error) {
+  console.warn(
+    "[Notifications] no se pudo guardar el token localmente",
+    error
+  );
+}
+
+await registerPushDevice({
+  expoPushToken:
+    result.data,
+
+  platform:
+    Platform.OS,
+});
 
     remotePushRegistered =
       true;
@@ -216,6 +313,130 @@ export async function configureNotifications():
     );
   }
 }
+
+
+/*
+ * Evita registros simultáneos.
+ *
+ * El logout podrá esperar a que
+ * termine la configuración push.
+ */
+export async function configureNotifications():
+  Promise<void> {
+
+  if (registrationInFlight) {
+    return registrationInFlight;
+  }
+
+  const task =
+    configureNotificationsInternal();
+
+  registrationInFlight = task;
+
+  try {
+    await task;
+  } finally {
+    if (
+      registrationInFlight === task
+    ) {
+      registrationInFlight = null;
+    }
+  }
+}
+
+/*
+ * Desvincular el dispositivo
+ * antes de eliminar el JWT.
+ *
+ * Devuelve false si no pudimos
+ * confirmar la desvinculación.
+ */
+export async function unregisterNotificationsForLogout():
+  Promise<boolean> {
+
+  /*
+   * Si el registro comenzó antes
+   * del logout, esperamos su final.
+   */
+  if (registrationInFlight) {
+    try {
+      await registrationInFlight;
+    } catch (error) {
+      console.warn(
+        "[Notifications] registro pendiente falló",
+        error
+      );
+    }
+  }
+
+  const wasRegistered =
+    remotePushRegistered;
+
+  remotePushRegistered = false;
+
+  let expoPushToken =
+    lastExpoPushToken;
+
+  if (!expoPushToken) {
+    try {
+      expoPushToken =
+        await SecureStore.getItemAsync(
+          PUSH_TOKEN_STORAGE_KEY
+        );
+    } catch (error) {
+      console.warn(
+        "[Notifications] no se pudo recuperar el token",
+        error
+      );
+    }
+  }
+
+  if (!expoPushToken) {
+    /*
+     * No hay un token conocido
+     * para enviar al servidor.
+     */
+    return !wasRegistered;
+  }
+
+  try {
+    /*
+     * Esta petición utiliza el
+     * JWT que todavía está guardado.
+     */
+    await unregisterPushDevice({
+      expoPushToken,
+    });
+
+    lastExpoPushToken = null;
+
+    try {
+      await SecureStore.deleteItemAsync(
+        PUSH_TOKEN_STORAGE_KEY
+      );
+    } catch (error) {
+      console.warn(
+        "[Notifications] no se pudo limpiar el token local",
+        error
+      );
+    }
+
+    console.log(
+      "[Notifications] dispositivo desvinculado"
+    );
+
+    return true;
+
+  } catch (error) {
+    console.warn(
+      "[Notifications] desvinculación fallida",
+      error
+    );
+
+    return false;
+  }
+}
+
 
 export function hasRemotePushRegistration():
   boolean {

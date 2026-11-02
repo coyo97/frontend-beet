@@ -1,3 +1,4 @@
+
 import React, {
   useEffect,
 } from "react";
@@ -11,6 +12,10 @@ import {
 import {
   useAuthStore,
 } from "../store/authStore";
+
+import {
+  configureNotifications,
+} from "../../../notifications/notificationService";
 
 export function AuthBootstrap() {
 
@@ -32,6 +37,9 @@ export function AuthBootstrap() {
   const pathname =
     usePathname();
 
+  /*
+   * Restaurar la sesion.
+   */
   useEffect(
     () => {
       void bootstrap();
@@ -41,6 +49,43 @@ export function AuthBootstrap() {
     ]
   );
 
+  /*
+   * Registrar notificaciones solamente
+   * despues de autenticar al usuario.
+   *
+   * Evitamos registrar dispositivos
+   * antes de recuperar la sesion.
+   */
+  useEffect(
+    () => {
+
+      if (
+        status !==
+        "authenticated"
+      ) {
+        return;
+      }
+
+      void configureNotifications()
+        .catch(
+          error => {
+            console.warn(
+              "[Notifications] initialization failed",
+              error
+            );
+          }
+        );
+
+    },
+    [
+      status,
+    ]
+  );
+
+  /*
+   * Control de navegacion
+   * segun el estado de autenticacion.
+   */
   useEffect(
     () => {
 
@@ -55,25 +100,12 @@ export function AuthBootstrap() {
         return;
       }
 
-      /*
-       * Login y registro son pantallas
-       * de entrada de autenticación.
-       */
       const onAuthEntry =
         pathname ===
           "/login" ||
         pathname ===
           "/register";
 
-      /*
-       * Server Settings también es
-       * pública.
-       *
-       * Esto es fundamental:
-       * si el backend cambió,
-       * necesitamos poder corregirlo
-       * ANTES de iniciar sesión.
-       */
       const onServerSettings =
         pathname ===
           "/server-settings";
@@ -83,10 +115,7 @@ export function AuthBootstrap() {
         onServerSettings;
 
       /*
-       * Sin sesión:
-       *
-       * solamente dejamos entrar a
-       * Login / Register / Server Settings.
+       * Usuario sin sesion.
        */
       if (
         status ===
@@ -101,12 +130,7 @@ export function AuthBootstrap() {
       }
 
       /*
-       * Backend caído / URL antigua.
-       *
-       * Conservamos el token, pero
-       * mandamos al usuario a Login
-       * para que tenga acceso al botón
-       * "Configurar servidor".
+       * Servidor no disponible.
        */
       if (
         status ===
@@ -121,14 +145,7 @@ export function AuthBootstrap() {
       }
 
       /*
-       * Si ya estamos autenticados,
-       * no necesitamos volver a Login
-       * o Register.
-       *
-       * OJO:
-       * server-settings NO entra aquí.
-       * Un usuario autenticado también
-       * debe poder configurarlo.
+       * Usuario autenticado.
        */
       if (
         status ===
@@ -150,3 +167,4 @@ export function AuthBootstrap() {
 
   return null;
 }
+

@@ -8,6 +8,11 @@ import {
   type AuthUser,
 } from "../api/authService";
 
+
+import {
+  Alert,
+} from "react-native";
+
 import {
   getAuthToken,
   saveAuthToken,
@@ -147,20 +152,61 @@ export const useAuthStore =
           });
         },
 
-      logout:
-        async () => {
-          await clearAuthToken();
+      
+logout:
+  async () => {
 
-          set({
-            status:
-              "anonymous",
+    let deviceUnregistered =
+      false;
 
-            user:
-              null,
+    /*
+     * Desvincular push ANTES
+     * de eliminar el JWT.
+     */
+    try {
+      const {
+        unregisterNotificationsForLogout,
+      } = await import(
+        "../../../notifications/notificationService"
+      );
 
-            error:
-              null,
-          });
-        },
+      deviceUnregistered =
+        await unregisterNotificationsForLogout();
+
+    } catch (error) {
+      console.warn(
+        "[Auth] push unregister failed",
+        error
+      );
+    }
+
+    /*
+     * Cerramos la sesión local
+     * incluso si el backend
+     * no está disponible.
+     */
+    await clearAuthToken();
+
+    set({
+      status: "anonymous",
+
+      user: null,
+
+      error: null,
+    });
+
+    /*
+     * Una desconexión del backend
+     * impide garantizar que las
+     * notificaciones se detuvieron.
+     */
+    if (!deviceUnregistered) {
+      Alert.alert(
+        "Notificaciones",
+        "Se cerró tu sesión, pero no se pudo confirmar la desvinculación de este dispositivo. Podrías seguir recibiendo avisos hasta que el servidor vuelva a estar disponible. Si es necesario, desactiva las notificaciones de Football Radar desde los ajustes de Android."
+      );
+    }
+  },
+
     })
   );
