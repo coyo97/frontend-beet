@@ -205,6 +205,28 @@ export default function RadarRulesScreen() {
         🔔 Nueva regla
       </Text>
 
+		<TouchableOpacity
+  onPress={() =>
+    router.push("/alert-rules")
+  }
+  style={{
+    padding: 12,
+    marginVertical: 12,
+    borderRadius: 10,
+    backgroundColor: "#244B51",
+  }}
+>
+  <Text
+    style={{
+      color: "#FFFFFF",
+      textAlign: "center",
+      fontWeight: "700",
+    }}
+  >
+    Administrar reglas avanzadas
+  </Text>
+</TouchableOpacity>
+
       <Text
         style={
           styles.subtitle
