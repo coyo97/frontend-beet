@@ -1,4 +1,3 @@
-
 import React from "react";
 
 import {
@@ -19,9 +18,9 @@ interface Props {
   rule: AlertRule;
   disabled: boolean;
   onToggle: (enabled: boolean) => void;
+  onEdit: () => void;
   onDelete: () => void;
 }
-
 
 function describeCondition(
   condition: AlertRuleCondition
@@ -30,6 +29,9 @@ function describeCondition(
   /*
    * Condición individual:
    * métrica + operador + valor.
+   *
+   * Conservamos la representación
+   * original de las condiciones.
    */
   if (condition.kind === "comparison") {
     return [
@@ -42,6 +44,9 @@ function describeCondition(
   /*
    * Condiciones agrupadas:
    * AND / OR.
+   *
+   * Conservamos los paréntesis
+   * para distinguir los grupos.
    */
   const separator =
     condition.kind === "all"
@@ -56,11 +61,11 @@ function describeCondition(
   return `(${children.join(separator)})`;
 }
 
-
 export default function AlertRuleCard({
   rule,
   disabled,
   onToggle,
+  onEdit,
   onDelete,
 }: Props) {
   return (
@@ -86,7 +91,9 @@ export default function AlertRuleCard({
           value={rule.enabled}
           disabled={disabled}
           onValueChange={onToggle}
-          accessibilityLabel={`Activar ${rule.name}`}
+          accessibilityLabel={
+            `${rule.enabled ? "Desactivar" : "Activar"} ${rule.name}`
+          }
         />
       </View>
 
@@ -101,18 +108,40 @@ export default function AlertRuleCard({
           Cooldown: {rule.delivery.cooldownMinutes} min
         </Text>
 
-        <TouchableOpacity
-          disabled={disabled}
-          onPress={onDelete}
-          accessibilityRole="button"
-          style={styles.deleteButton}
-        >
-          <Text style={styles.deleteText}>
-            Eliminar
-          </Text>
-        </TouchableOpacity>
+        <View style={styles.actions}>
+          {/*
+           * NUEVO:
+           * Editar regla existente.
+           */}
+          <TouchableOpacity
+            disabled={disabled}
+            onPress={onEdit}
+            accessibilityRole="button"
+            accessibilityLabel={`Editar ${rule.name}`}
+            style={styles.editButton}
+          >
+            <Text style={styles.editText}>
+              Editar
+            </Text>
+          </TouchableOpacity>
+
+          {/*
+           * EXISTENTE:
+           * Eliminar con confirmación
+           * desde la pantalla principal.
+           */}
+          <TouchableOpacity
+            disabled={disabled}
+            onPress={onDelete}
+            accessibilityRole="button"
+            style={styles.deleteButton}
+          >
+            <Text style={styles.deleteText}>
+              Eliminar
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
 }
-

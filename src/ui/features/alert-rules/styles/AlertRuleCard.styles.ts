@@ -1,4 +1,3 @@
-
 import { StyleSheet } from "react-native";
 
 export const styles = StyleSheet.create({
@@ -52,8 +51,37 @@ export const styles = StyleSheet.create({
     flex: 1,
     color: "#9DB4BA",
     fontSize: 11,
+    paddingRight: 8,
   },
 
+  /*
+   * NUEVO:
+   * Agrupar botones Editar y Eliminar.
+   */
+  actions: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  editButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    backgroundColor: "#244B51",
+    borderRadius: 8,
+    marginRight: 4,
+  },
+
+  editText: {
+    color: "#65D8CC",
+    fontWeight: "700",
+    fontSize: 12,
+  },
+
+  /*
+   * EXISTENTE:
+   * Conservamos el estilo
+   * del botón Eliminar.
+   */
   deleteButton: {
     paddingVertical: 8,
     paddingHorizontal: 10,
@@ -65,4 +93,3 @@ export const styles = StyleSheet.create({
     fontSize: 12,
   },
 });
-

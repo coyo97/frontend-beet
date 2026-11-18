@@ -8,6 +8,9 @@ export const radarRoutes = {
   live:
     `${FOOTBALL_BASE}/live`,
 
+  startingSoon:
+  `${FOOTBALL_BASE}/starting-soon`,
+
   redCards:
     `${RADAR_BASE}/red-cards`,
 

@@ -109,3 +109,21 @@ export async function getRecentRadarSignals(
     }
   );
 }
+
+/*
+ * Partidos próximos al inicio.
+ *
+ * Independiente del servicio Live
+ * y de las notificaciones de rojas.
+ */
+export async function getStartingSoonMatches(
+  filters: LiveFilters = {}
+): Promise<LiveMatchesResponse> {
+
+  return get<LiveMatchesResponse>(
+    radarRoutes.startingSoon,
+    {
+      country: filters.country,
+    }
+  );
+}

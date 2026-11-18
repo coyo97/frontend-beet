@@ -1,4 +1,3 @@
-
 import React, { useCallback } from "react";
 
 import {
@@ -54,12 +53,28 @@ export default function AlertRulesListScreen() {
     (state) => state.remove
   );
 
+  /*
+   * EXISTENTE:
+   * Recargar las reglas cuando
+   * la pantalla recupera el foco.
+   */
   useFocusEffect(
     useCallback(() => {
       void load();
     }, [load])
   );
 
+  /*
+   * Evitar operaciones simultáneas
+   * mientras cargamos o modificamos.
+   */
+  const busy =
+    loading || mutatingId !== null;
+
+  /*
+   * EXISTENTE:
+   * Habilitar o deshabilitar regla.
+   */
   const toggle = async (
     id: string,
     enabled: boolean
@@ -76,6 +91,14 @@ export default function AlertRulesListScreen() {
     }
   };
 
+  /*
+   * EXISTENTE:
+   * Confirmar eliminación.
+   *
+   * Mantiene la misma llamada
+   * al store y el mismo manejo
+   * de errores.
+   */
   const confirmDelete = (
     id: string,
     name: string
@@ -106,6 +129,29 @@ export default function AlertRulesListScreen() {
     );
   };
 
+  /*
+   * NUEVO:
+   * Abrir editor para crear una regla.
+   *
+   * Sin ID = nueva regla.
+   */
+  const createRule = () => {
+    router.push("/alert-rule-editor");
+  };
+
+  /*
+   * NUEVO:
+   * Abrir editor con identificador.
+   *
+   * Con ID = editar regla existente.
+   */
+  const editRule = (id: string) => {
+    router.push({
+      pathname: "/alert-rule-editor",
+      params: { id },
+    });
+  };
+
   return (
     <ScrollView
       style={styles.screen}
@@ -129,10 +175,30 @@ export default function AlertRulesListScreen() {
         guardadas en Football Radar.
       </Text>
 
+      {/*
+       * NUEVO:
+       * Acceso al editor visual.
+       */}
+      <TouchableOpacity
+        style={styles.refreshButton}
+        onPress={createRule}
+        disabled={busy}
+        accessibilityRole="button"
+      >
+        <Text style={styles.refreshText}>
+          + Crear regla dinámica
+        </Text>
+      </TouchableOpacity>
+
+      {/*
+       * EXISTENTE:
+       * Actualización manual de reglas.
+       */}
       <TouchableOpacity
         style={styles.refreshButton}
         onPress={() => void load()}
-        disabled={loading || mutatingId !== null}
+        disabled={busy}
+        accessibilityRole="button"
       >
         <Text style={styles.refreshText}>
           Actualizar reglas
@@ -157,24 +223,39 @@ export default function AlertRulesListScreen() {
           <Text style={styles.emptyTitle}>
             Aún no tienes reglas avanzadas
           </Text>
+
           <Text style={styles.emptyText}>
-            El editor para crear condiciones
-            personalizadas será el siguiente módulo.
+            Crea tu primera regla dinámica
+            y combina condiciones mediante
+            Y (AND) u O (OR).
           </Text>
         </View>
       )}
 
+      {/*
+       * EXISTENTE:
+       * Listar reglas del usuario.
+       *
+       * NUEVO:
+       * Añadir navegación para editar.
+       */}
       {!loading && rules.map((rule) => (
         <AlertRuleCard
           key={rule.id}
           rule={rule}
-          disabled={mutatingId !== null}
+          disabled={busy}
           onToggle={(enabled) => {
             void toggle(rule.id, enabled);
           }}
-          onDelete={() =>
-            confirmDelete(rule.id, rule.name)
-          }
+          onEdit={() => {
+            editRule(rule.id);
+          }}
+          onDelete={() => {
+            confirmDelete(
+              rule.id,
+              rule.name
+            );
+          }}
         />
       ))}
 
@@ -185,4 +266,3 @@ export default function AlertRulesListScreen() {
     </ScrollView>
   );
 }
-

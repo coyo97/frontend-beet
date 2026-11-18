@@ -28,6 +28,9 @@ import {
   useAutoResolveMatchPicks,
 } from "@/features/match-picks/hooks/useAutoResolveMatchPicks";
 
+import StartingSoonPanel
+  from "@/ui/features/radar/components/StartingSoonPanel";
+
 import {
   useSharedMatchStore,
 } from "@/features/shared-match/store/sharedMatchStore";
@@ -1121,6 +1124,20 @@ const onViewableLiveItemsChanged =
             setTab
           }
         />
+
+		  {/* ========================================
+    PARTIDOS PRÓXIMOS A COMENZAR
+
+    Solo aparece en la pestaña Live.
+    No modifica las tarjetas rojas.
+======================================== */}
+
+{tab === "live" && (
+  <StartingSoonPanel
+    country={country}
+    liveMatches={liveMatches}
+  />
+)}
 
         {/* =========================
             RED CARD STATE FILTER

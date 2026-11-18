@@ -32,6 +32,8 @@ import {
   useWatchlistAlertStore,
 } from "../../../../store/watchlistAlertStore";
 
+import StartingSoonPanel from "../components/StartingSoonPanel";
+
 import WatchlistAlertBanner from "../../watchlist/components/WatchlistAlertBanner";
 
 import {
@@ -549,9 +551,15 @@ return (
         TODOS LOS PARTIDOS LIVE
     ========================== */}
     {tab ===
-      "live" && (
-      <>
-        {liveMatches.map(
+  "live" && (
+  <>
+
+    <StartingSoonPanel
+      country={country}
+      liveMatches={liveMatches}
+    />
+
+    {liveMatches.map(
           (
             match,
             index
