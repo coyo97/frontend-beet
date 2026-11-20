@@ -17,6 +17,9 @@ import type {
   LiveMatch,
 } from "@/types/radar";
 
+import OneXBetMatchActions
+  from "@/features/radar/components/OneXBetMatchActions";
+
 import {
   teamMemoryKey,
   useTeamMemoryStore,
@@ -549,15 +552,17 @@ export function LiveMatchesTab({
               );
 
             return (
-              <AllMatchContextCard
-                match={
-                  item
-                }
-                contextVisible={
-                  contextVisible
-                }
-              />
-            );
+  <>
+    <AllMatchContextCard
+      match={item}
+      contextVisible={contextVisible}
+    />
+
+    <OneXBetMatchActions
+      match={item}
+    />
+  </>
+);
           }
         }
 

@@ -23,6 +23,15 @@ export const radarRoutes = {
   recentSignals:
     `${RADAR_BASE}/signals/recent`,
 
+  upcomingCatalog:
+  `${FOOTBALL_BASE}/upcoming/catalog`,
+
+oneXBetResolve:
+  `${FOOTBALL_BASE}/onexbet/resolve`,
+
+oneXBetSearch:
+  `${FOOTBALL_BASE}/onexbet/search`,
+
   matchStatistics:
     (
       id:

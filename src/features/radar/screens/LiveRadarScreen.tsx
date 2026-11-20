@@ -1131,7 +1131,55 @@ const onViewableLiveItemsChanged =
     Solo aparece en la pestaña Live.
     No modifica las tarjetas rojas.
 ======================================== */}
+{/* =====================================
+    ACCESO A RADAR PREMATCH
+    ===================================== */}
 
+<TouchableOpacity
+  activeOpacity={0.8}
+  onPress={() => {
+    router.push("/upcoming");
+  }}
+  style={{
+    marginHorizontal: 12,
+    marginVertical: 10,
+    padding: 16,
+    backgroundColor: "#163C36",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#22C7A0",
+  }}
+>
+  <Text
+    style={{
+      color: "#22C7A0",
+      fontSize: 16,
+      fontWeight: "700",
+    }}
+  >
+    📅 Radar Prematch
+  </Text>
+
+  <Text
+    style={{
+      color: "#C0D0CD",
+      fontSize: 12,
+      marginTop: 6,
+    }}
+  >
+    Próximos 7 días · Buscar partidos
+  </Text>
+
+  <Text
+    style={{
+      color: "#C0D0CD",
+      fontSize: 12,
+      marginTop: 3,
+    }}
+  >
+    Analiza enfrentamientos antes de comenzar
+  </Text>
+</TouchableOpacity>
 {tab === "live" && (
   <StartingSoonPanel
     country={country}
